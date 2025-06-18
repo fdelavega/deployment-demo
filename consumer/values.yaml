@@ -77,7 +77,7 @@ keycloak:
       value: keycloak-consumer.127.0.0.1.nip.io
     # did of the consumer
     - name: DID
-      value: "did:key:zDnaefDkNU7T7bBPYPSGW1rGMwVXuna18VjN8nioUYojQVyK8"
+      value: "did:key:zDnaeXepZRVhN6yv9GVWsELC9djC62ENkFJaDC7NH7KYkP5nZ"
 
   extraVolumeMounts:
     - name: did-material
@@ -175,6 +175,16 @@ keycloak:
             "config": {
               "subjectProperty": "roles",
               "clientId": "${DID}",
+              "supportedCredentialTypes": "OperatorCredential"
+            }
+          },
+          {
+            "name": "target-role-mapper-other",
+            "protocol": "oid4vc",
+            "protocolMapper": "oid4vc-target-role-mapper",
+            "config": {
+              "subjectProperty": "roles",
+              "clientId": "did:key:zDnaeh6LHmMZDaPG8Mv7wyStj816FPpNC2Yqxofzrx3wNKA8Y",
               "supportedCredentialTypes": "OperatorCredential"
             }
           },

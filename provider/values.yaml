@@ -16,7 +16,7 @@ vcverifier:
     verifier:
       # address of the trust anchor
       tirAddress: http://tir.127.0.0.1.nip.io:8080/
-      did: did:key:zDnaeQfjsx66YNYV86SDBB1e5kunWKJcWwk686dvjirEE7pqW
+      did: did:key:zDnaeh6LHmMZDaPG8Mv7wyStj816FPpNC2Yqxofzrx3wNKA8Y
     # public address of the verifier, to be provided as oid-config
     server:
       host: http://provider-verifier.127.0.0.1.nip.io:8080
@@ -135,10 +135,44 @@ postgresql:
 
 # policy administration point
 odrl-pap:
-  additonalEnvVars:
+  additionalEnvVars:
     # needs to know the providers identity to 
     - name: GENERAL_ORGANIZATION_DID
-      value: did:key:zDnaeQfjsx66YNYV86SDBB1e5kunWKJcWwk686dvjirEE7pqW
+      value: did:key:zDnaeh6LHmMZDaPG8Mv7wyStj816FPpNC2Yqxofzrx3wNKA8Y
+  additionalMapping:
+    # -- should an additional mapping.json be loaded
+    enabled: false
+    # -- mapping.json to merged with the defaults
+    # the example would overwrite the default odrl:use to be handled by a custom rego method provided with the additional rego 
+    json: |
+      {
+        "leftOperand": {
+          "vc": {
+            "crole": {
+              "regoPackage": "custom.leftOperand as cus_lo",
+              "regoMethod": "cus_lo.crole(helper.verifiable_credential, helper.organization_did)"
+            }
+          }
+        }
+      }
+  additionalRego:
+    # -- should additional packages be loaded
+    enabled: false
+    packages: |
+      custom.leftOperand.rego: |
+        package custom.leftOperand
+
+        import rego.v1
+
+        ## vc:crole
+        # retrieves the roles from the credential, that target the current organization
+        crole(verifiable_credential,organization_id) := r if {
+            roles := verifiable_credential.credentialSubject.roles
+            orgId := verifiable_credential.issuer
+            role := [rad | some rad in roles; rad.target = orgId ]
+            r = role[_].names; trace(orgId)
+        }
+
   ingress:
     enabled: true
     hosts:
@@ -180,13 +214,8 @@ scorpio:
 
 # tmforum apis to support contracting
 tm-forum-api:
-  ingress:
-    enabled: true
-    hosts:
-      - host: tm-forum-api.127.0.0.1.nip.io
-        paths:
-          - /
+  enabled: false
 
 # contract management component and the credential type it should register for a bought service
 contract-management:
-  enabled: true
+  enabled: false
