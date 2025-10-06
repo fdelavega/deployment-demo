@@ -12,9 +12,9 @@ verifiable_presentation="{
   \"holder\": \"${holder_did}\"
 }"
 
-jwt_header=$(echo -n "{\"alg\":\"ES256\", \"typ\":\"JWT\", \"kid\":\"${holder_did}\"}"| base64 -w0 | sed s/\+/-/g | sed 's/\//_/g' | sed -E s/=+$//)
-payload=$(echo -n "{\"iss\": \"${holder_did}\", \"sub\": \"${holder_did}\", \"vp\": ${verifiable_presentation}}" | base64 -w0 | sed s/\+/-/g |sed 's/\//_/g' |  sed -E s/=+$//)
-signature=$(echo -n "${jwt_header}.${payload}" | openssl dgst -sha256 -binary -sign wallet-identity/private-key.pem | base64 -w0 | sed s/\+/-/g | sed 's/\//_/g' | sed -E s/=+$//)
+jwt_header=$(echo -n "{\"alg\":\"ES256\", \"typ\":\"JWT\", \"kid\":\"${holder_did}\"}"| base64 | tr -d '\n' | sed s/\+/-/g | sed 's/\//_/g' | sed -E s/=+$//)
+payload=$(echo -n "{\"iss\": \"${holder_did}\", \"sub\": \"${holder_did}\", \"vp\": ${verifiable_presentation}}" | base64 | tr -d '\n' | sed s/\+/-/g |sed 's/\//_/g' |  sed -E s/=+$//)
+signature=$(echo -n "${jwt_header}.${payload}" | openssl dgst -sha256 -binary -sign wallet-identity/private-key.pem | base64 | tr -d '\n' | sed s/\+/-/g | sed 's/\//_/g' | sed -E s/=+$//)
 jwt="${jwt_header}.${payload}.${signature}"
 
 echo $(curl -s -X POST $token_endpoint \
