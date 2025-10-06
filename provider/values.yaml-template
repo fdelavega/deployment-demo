@@ -1,56 +1,156 @@
-# -- no apis offered, thus no authentication framework required
-vcverifier:
-  enabled: false
-# -- no verifier deployed, thus no supporting services required
-credentials-config-service:
-  enabled: false
-# -- no verifier deployed, thus no supporting services required
-trusted-issuers-list:
-  enabled: false
-# -- no trusted-issuers-list deployed, thus no db for it required
-mysql:
-  enabled: false
-# -- no apis offered, thus no policy administration required
-odrl-pap:
-  enabled: false
-# -- no apis offered, thus no policy enforcement required
-apisix:
-  enabled: false
-# -- nothing offered, thus no broker
-scorpio:
-  enabled: false
-# -- no scorpio, thus no db for it
-postgis:
-  enabled: false
-# -- nothing offered, thus no api to offer something required
-tm-forum-api:
-  enabled: false
-# -- nothing offered, thus no contracts need to be managed
-contract-management:
+# -- issuance is not required in this example
+keycloak:
   enabled: false
 
-# -- database for keycloak as the issuer needs to be registered
-postgresql:
-  # -- should it be enabled? set to false if one outside the chart is used.
+## AUTHENTICATION
+
+vcverifier:
+  # make the verifier publicly accessible
+  ingress:
+    enabled: true
+    hosts:
+      - host: provider-verifier.127.0.0.1.nip.io
+        paths:
+          - "/"
+  deployment:
+    verifier:
+      # address of the trust anchor
+      tirAddress: http://tir.127.0.0.1.nip.io:8080/
+      did: PROVIDER_DID
+      supportedModes: ["urlEncoded"]
+    # public address of the verifier, to be provided as oid-config
+    server:
+      host: http://provider-verifier.127.0.0.1.nip.io:8080
+    # access to the internal credentials-config-service
+    configRepo:
+      configEndpoint: http://credentials-config-service:8080
+
+credentials-config-service:
   enabled: true
-  global:
-    security:
-      # allow the image from the legacy repo
-      allowInsecureImages: true
-  # -- configuration of the used image
-  image:
-    # -- repository where the image is held, see https://github.com/bitnami/charts/issues/35164 for further info
-    repository: bitnamilegacy/postgresql
-    # -- fixes the unpullable image referenced in the chart
-    tag: 13.18.0
-  # -- allows to set a fixed name for the services
-  fullnameOverride: postgresql
+  registration:
+    enabled: true
+    services:
+      - id: data-service
+        defaultOidcScope: "default"
+        oidcScopes:
+          "default":
+            credentials: 
+              - type: UserCredential
+                trustedParticipantsLists:
+                  - http://tir.trust-anchor.svc.cluster.local:8080
+                trustedIssuersLists:
+                  - http://trusted-issuers-list:8080
+                jwtInclusion:
+                  enabled: true
+                  fullInclusion: true
+
+
+
+# internal trusted issuers list
+trusted-issuers-list:
+  # only open for demo purposes
+  ingress:
+    til:
+      enabled: true
+      hosts:
+        - host: til-provider.127.0.0.1.nip.io
+          paths:
+            - /
+
+# mysql used for the credentials config service
+mysql:
+  primary:
+    persistence:
+      enabled: true      
+      # use one of the classes provided by your cluster
+      storageClass: local-path
+
+## AUTHORIZATION
+
+# serves configuration of the dataspace
+dataSpaceConfig:
+  enabled: true
+  
+  ## Defaults
+  serviceType: ClusterIP
+  port: 3002
+  supportedModels:
+    - "https://raw.githubusercontent.com/smart-data-models/dataModel.Consumption/master/ConsumptionPoint/schema.json"
+    - "https://raw.githubusercontent.com/smart-data-models/dataModel.Consumption/master/ConsumptionCost/schema.json"
+  supportedProtocols:
+    - http
+    - https
+  authenticationProtocols:
+    - oid4vp
+
+# -- apisix configuration
+apisix:
+  dataPlane:
+    # -- configure the ingress to the data service
+    ingress:
+      enabled: true
+      hostname: mp-data-service.127.0.0.1.nip.io 
+  catchAllRoute:
+    enabled: false
+  routes: |-
+    # route to answer all openid-config requests to the data service from within the verifier
+    - uri: /.well-known/openid-configuration
+      host: mp-data-service.127.0.0.1.nip.io
+      upstream:
+        nodes:
+          verifier:3000: 1
+        type: roundrobin
+      plugins:
+        proxy-rewrite:
+          uri: /services/data-service/.well-known/openid-configuration
+    # route to provider data-space-configuration
+    - uri: /.well-known/data-space-configuration
+      host: mp-data-service.127.0.0.1.nip.io
+      upstream:
+        nodes:
+          dsconfig:3002: 1
+        type: roundrobin
+      plugins:
+        proxy-rewrite:
+          uri: /.well-known/data-space-configuration/data-space-configuration.json
+        response-rewrite:
+          headers:
+            set:
+              content-type: application/json
+    # central route to the dataservice
+    - uri: /*
+      host: mp-data-service.127.0.0.1.nip.io
+      upstream:
+        nodes:
+          data-service-scorpio:9090: 1
+        type: roundrobin
+      plugins:
+        # verify the jwt at the verifiers endpoint
+        openid-connect:
+          bearer_only: true
+          use_jwks: true
+          client_id: data-service
+          client_secret: unused
+          ssl_verify: false
+          discovery: http://verifier:3000/services/data-service/.well-known/openid-configuration
+        # request decisions at opa
+        opa:
+          host: "http://localhost:8181"
+          policy: policy/main
+          with_body: true
+
+# -- configuration for the open-policy-agent to be deployed as part of the connector fulfilling the role of the PDP, as a sidecar to apisix
+opa:
+  # -- should an opa sidecar be deployed to apisix
+  enabled: true
+
+# database used for odrl-pap
+postgresql:
   generatePasswords:
     # -- should a password for the database be generated in the cluster
     enabled: true
     # -- name of the secret to store the password in
     secretName: database-secret
-  # -- configure authentication to mysql
   auth:
     # -- name of the secret to take the passowrds from
     existingSecret: database-secret
@@ -58,33 +158,72 @@ postgresql:
     secretKeys:
       adminPasswordKey: postgres-admin-password
       userPasswordKey: postgres-user-password
-  # -- configuration for the primary of the db
   primary:
     # -- scripts to be run on intialization
     initdb:
       scripts:
         create.sh: |
           psql postgresql://postgres:${POSTGRES_PASSWORD}@localhost:5432 -c "CREATE DATABASE keycloak;"
+          psql postgresql://postgres:${POSTGRES_PASSWORD}@localhost:5432 -c "CREATE DATABASE pap;"
+    persistence:
+      enabled: true      
+      # use one of the classes provided by your cluster
+      storageClass: local-path
+# policy administration point
+odrl-pap:
+  additonalEnvVars:
+    # needs to know the providers identity to 
+    - name: GENERAL_ORGANIZATION_DID
+      value: PROVIDER_DID
+  database:
+    # -- url to connect the db at
+    url: jdbc:postgresql://postgresql:5432/pap
+    # -- username to access the db
+    username: postgres
+    # -- secret to take the password from
+    existingSecret:
+      enabled: true
+      name: database-secret
+      key: postgres-admin-password
+  ingress:
+    enabled: true
+    hosts:
+      - host: pap-provider.127.0.0.1.nip.io
+        paths:
+          - "/"
+
+# database used for scorpio
+postgis:
+  primary:
     persistence:
       enabled: true      
       # use one of the classes provided by your cluster
       storageClass: local-path
 
-# -- keycloak as issuer of verifiable credentials is required
+# the data service
+scorpio:
+  enabled: true
+
+## TMForum API
+
+# tmforum apis to support contracting
+tm-forum-api:
+  ingress:
+    enabled: true
+    hosts:
+      - host: tm-forum-api.127.0.0.1.nip.io
+        paths:
+          - /
+
+# contract management component and the credential type it should register for a bought service
+contract-management:
+  enabled: true
+
 keycloak:
   ingress:
     enabled: true
-    hostname: keycloak-consumer.127.0.0.1.nip.io
-  
-  global:
-    security:
-      # allow the image from the legacy repo
-      allowInsecureImages: true
-  # -- configuration of the used image
-  image:
-    # -- repository where the image is held, see https://github.com/bitnami/charts/issues/35164 for further info
-    repository: bitnamilegacy/keycloak
-    tag: 26.3.2-debian-12-r0
+    hostname: keycloak-provider.127.0.0.1.nip.io
+
   # -- disable the security context, required by the current quarkus container, will be solved in the future chart versions of keycloak
   containerSecurityContext:
     enabled: false
@@ -126,7 +265,7 @@ keycloak:
     - name: STORE_PASS
       value: test
     - name: KEYCLOAK_HOSTNAME
-      value: http://keycloak-consumer.127.0.0.1.nip.io:8080
+      value: http://keycloak-provider.127.0.0.1.nip.io:8080
     # keycloak admin password
     - name: KC_ADMIN_PASSWORD
       valueFrom:
@@ -139,9 +278,9 @@ keycloak:
     # log level for keycloak
     - name: KEYCLOAK_LOG_LEVEL
       value: DEBUG
-    # did of the consumer
+    # did of the provider
     - name: DID
-      value: did:key:zDnaeYDLJEtt9zJAwfef2vmAcWhPo2o6FoZ23zLyfKqQfEPmE
+      value: DID_PROVIDER
 
   extraVolumeMounts:
     - name: did-material
@@ -153,7 +292,7 @@ keycloak:
   extraVolumes:
     - name: did-material
       secret:
-        secretName: consumer-identity
+        secretName: provider-identity
     - name: realms
       configMap:
         name: test-realm-realm
@@ -173,7 +312,7 @@ keycloak:
       "vc.user-credential.scope": "UserCredential",
       "vc.user-credential.vct": "UserCredential"
     clientRoles: |
-      "did:key:zDnaeupB1reLxatS1iKR8RjRcvLay7sGGbosweJGstDez8HJo": [
+      "DID_PROVIDER": [
         {
           "name": "READER",
           "description": "Is allowed to see offers etc.",
@@ -200,7 +339,7 @@ keycloak:
           }
         ],
         "clientRoles": {
-          "did:key:zDnaeupB1reLxatS1iKR8RjRcvLay7sGGbosweJGstDez8HJo": [
+          "DID_PROVIDER": [
             "READER",
             "OPERATOR"
           ],
@@ -281,7 +420,7 @@ keycloak:
             "protocolMapper": "oid4vc-target-role-mapper",
             "config": {
               "subjectProperty": "roles",
-              "clientId": "did:key:zDnaeupB1reLxatS1iKR8RjRcvLay7sGGbosweJGstDez8HJo",
+              "clientId": "DID_PROVIDER",
               "supportedCredentialTypes": "UserCredential"
             }
           },
@@ -339,7 +478,7 @@ keycloak:
       }
     clients: |
       {
-        "clientId": "did:key:zDnaeupB1reLxatS1iKR8RjRcvLay7sGGbosweJGstDez8HJo",
+        "clientId": "DID_PROVIDER",
         "enabled": true,
         "description": "Client to connect test.org",
         "surrogateAuthRequired": false,
