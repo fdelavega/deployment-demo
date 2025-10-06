@@ -16,7 +16,7 @@ vcverifier:
     verifier:
       # address of the trust anchor
       tirAddress: http://tir.127.0.0.1.nip.io:8080/
-      did: PROVIDER_DID
+      did: DID_PROVIDER
       supportedModes: ["urlEncoded"]
     # public address of the verifier, to be provided as oid-config
     server:
@@ -174,7 +174,7 @@ odrl-pap:
   additonalEnvVars:
     # needs to know the providers identity to 
     - name: GENERAL_ORGANIZATION_DID
-      value: PROVIDER_DID
+      value: DID_PROVIDER
   database:
     # -- url to connect the db at
     url: jdbc:postgresql://postgresql:5432/pap
