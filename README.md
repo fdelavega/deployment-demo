@@ -1,9 +1,3 @@
-## Local deployment with MVN
-
-Local deployment repo:
-https://github.com/FIWARE/data-space-connector/blob/fix-local-deploy/doc/deployment-integration/local-deployment/LOCAL.MD
-
-
 # Step by Step deployment
 
 ## Setup k3s
@@ -161,9 +155,8 @@ Register the consumer at the trust-anchor:
 Get a list of the issuers:
 
 ```shell
-  curl -X GET http://tir.127.0.0.1.nip.io:8080/v4/issuers
+  curl -X GET http://tir.127.0.0.1.nip.io:8080/v4/issuers | python3 -m json.tool
 ```
-
 
 Access the issuer: http://keycloak-consumer.127.0.0.1.nip.io:8080/realms/test-realm/account/oid4vci
 
