@@ -171,12 +171,29 @@ keycloak:
       "vc.user-credential.credential_build_config.proof_types_supported": "{\"jwt\":{\"proof_signing_alg_values_supported\":[\"ES256\"]}}",
       "vc.user-credential.format": "jwt_vc",
       "vc.user-credential.scope": "UserCredential",
-      "vc.user-credential.vct": "UserCredential"
+      "vc.user-credential.vct": "UserCredential",
+      "vc.operator-credential.credential_signing_alg_values_supported": "ES256",
+      "vc.operator-credential.credential_build_config.signing_algorithm": "ES256",
+      "vc.operator-credential.credential_build_config.token_jws_type": "JWT",
+      "vc.operator-credential.credential_build_config.proof_types_supported": "{\"jwt\":{\"proof_signing_alg_values_supported\":[\"ES256\"]}}",
+      "vc.operator-credential.format": "jwt_vc",
+      "vc.operator-credential.scope": "OperatorCredential",
+      "vc.operator-credential.vct": "OperatorCredential"
     clientRoles: |
       "did:key:zDnaeweD2CZEV3GArTbbfUtM3PS5LM2QXx1Ahu1KroezYN6qS": [
         {
           "name": "RESEARCHER",
           "description": "Integrates new data services or APIs",
+          "clientRole": true
+        },
+        {
+          "name": "LEAR",
+          "description": "Represents the organization",
+          "clientRole": true
+        },
+        {
+          "name": "OPERATOR",
+          "description": "Is allowed to operate clusters.",
           "clientRole": true
         }
       ]
@@ -197,6 +214,34 @@ keycloak:
         "clientRoles": {
           "did:key:zDnaeweD2CZEV3GArTbbfUtM3PS5LM2QXx1Ahu1KroezYN6qS": [
             "RESEARCHER"
+          ],
+          "account": [
+            "view-profile",
+            "manage-account"
+          ]
+        },
+        "realmRoles": [
+          "user",
+          "default-roles-test-realm"
+        ],
+        "groups": [
+        ]
+      },
+      {
+        "username": "operator",
+        "enabled": true,
+        "email": "operator@user.org",
+        "firstName": "Test",
+        "lastName": "Reader",
+        "credentials": [
+          {
+            "type": "password",
+            "value": "test"
+          }
+        ],
+        "clientRoles": {
+          "did:key:zDnaeweD2CZEV3GArTbbfUtM3PS5LM2QXx1Ahu1KroezYN6qS": [
+            "OPERATOR"
           ],
           "account": [
             "view-profile",
@@ -330,6 +375,76 @@ keycloak:
             }
           }
         ]
+      },
+      {
+        "name": "OperatorCredential",
+        "description": "OIDC4VC Scope, that adds all properties required for a operator.",
+        "protocol": "openid-connect",
+        "attributes": {
+          "include.in.token.scope": "false",
+          "display.on.consent.screen": "false"
+        },
+        "protocolMappers": [
+          {
+            "name": "context-mapper-oc",
+            "protocol": "oid4vc",
+            "protocolMapper": "oid4vc-context-mapper",
+            "config": {
+              "context": "https://www.w3.org/2018/credentials/v1",
+              "supportedCredentialTypes": "OperatorCredential"
+            }
+          },
+          {
+            "name": "email-mapper-oc",
+            "protocol": "oid4vc",
+            "protocolMapper": "oid4vc-user-attribute-mapper",
+            "config": {
+              "subjectProperty": "email",
+              "userAttribute": "email",
+              "supportedCredentialTypes": "OperatorCredential"
+            }
+          },
+          {
+            "name": "firstName-mapper-oc",
+            "protocol": "oid4vc",
+            "protocolMapper": "oid4vc-user-attribute-mapper",
+            "config": {
+              "subjectProperty": "firstName",
+              "userAttribute": "firstName",
+              "supportedCredentialTypes": "OperatorCredential"
+            }
+          },
+          {
+            "name": "street-mapper-oc",
+            "protocol": "oid4vc",
+            "protocolMapper": "oid4vc-static-claim-mapper",
+            "config": {
+              "subjectProperty": "street",
+              "staticValue": "Main Street",
+              "supportedCredentialTypes": "OperatorCredential"
+            }
+          },
+          {
+            "name": "lastName-mapper-oc",
+            "protocol": "oid4vc",
+            "protocolMapper": "oid4vc-user-attribute-mapper",
+            "config": {
+              "subjectProperty": "lastName",
+              "userAttribute": "lastName",
+              "supportedCredentialTypes": "OperatorCredential"
+            }
+          },
+          {
+            "name": "role-mapper-oc",
+            "protocol": "oid4vc",
+            "protocolMapper": "oid4vc-target-role-mapper",
+            "config": {
+              "subjectProperty": "roles",
+              "clientId": "did:key:zDnaeweD2CZEV3GArTbbfUtM3PS5LM2QXx1Ahu1KroezYN6qS",
+              "supportedCredentialTypes": "OperatorCredential"
+            }
+          }
+        ]
       }
     clients: |
       {
@@ -418,6 +533,7 @@ keycloak:
           "offline_access",
           "organization",
           "microprofile-jwt",
-          "UserCredential"
+          "UserCredential",
+          "OperatorCredential"
         ]
       }

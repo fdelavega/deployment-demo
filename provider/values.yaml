@@ -1,7 +1,3 @@
-# -- issuance is not required in this example
-keycloak:
-  enabled: false
-
 ## AUTHENTICATION
 
 vcverifier:
@@ -16,7 +12,8 @@ vcverifier:
     verifier:
       # address of the trust anchor
       tirAddress: http://tir.127.0.0.1.nip.io:8080/
-      did: did:key:zDnaeh6LHmMZDaPG8Mv7wyStj816FPpNC2Yqxofzrx3wNKA8Y
+      did: did:key:zDnaeweD2CZEV3GArTbbfUtM3PS5LM2QXx1Ahu1KroezYN6qS
+      supportedModes: ["urlEncoded"]
     # public address of the verifier, to be provided as oid-config
     server:
       host: http://provider-verifier.127.0.0.1.nip.io:8080
@@ -26,6 +23,24 @@ vcverifier:
 
 credentials-config-service:
   enabled: true
+  registration:
+    enabled: true
+    services:
+      - id: data-service
+        defaultOidcScope: "default"
+        oidcScopes:
+          "default":
+            credentials: 
+              - type: UserCredential
+                trustedParticipantsLists:
+                  - http://tir.trust-anchor.svc.cluster.local:8080
+                trustedIssuersLists:
+                  - http://trusted-issuers-list:8080
+                jwtInclusion:
+                  enabled: true
+                  fullInclusion: true
+
+
 
 # internal trusted issuers list
 trusted-issuers-list:
@@ -56,8 +71,8 @@ dataSpaceConfig:
   serviceType: ClusterIP
   port: 3002
   supportedModels:
-    - "https://raw.githubusercontent.com/smart-data-models/dataModel.Consumption/master/ConsumptionPoint/schema.json"
-    - "https://raw.githubusercontent.com/smart-data-models/dataModel.Consumption/master/ConsumptionCost/schema.json"
+    - "https://raw.githubusercontent.com/smart-data-models/dataModel.Environment/master/AirQualityObserved/schema.json"
+    - "https://raw.githubusercontent.com/smart-data-models/dataModel.Transportation/master/Vehicle/schema.json"
   supportedProtocols:
     - http
     - https
@@ -66,11 +81,30 @@ dataSpaceConfig:
 
 # -- apisix configuration
 apisix:
+  global:
+    security:
+      # allow the image from the legacy repo
+      allowInsecureImages: true
+  image:
+    repository: bitnamilegacy/apisix
+  ingressController:
+    image:
+      repository: bitnamilegacy/apisix-ingress-controller
+  waitContainer:
+    image:
+      repository: bitnamilegacy/os-shell
+  etcd:
+    global:
+      security:
+        # allow the image from the legacy repo
+        allowInsecureImages: true
+    image:
+      repository: bitnamilegacy/etcd
   dataPlane:
     # -- configure the ingress to the data service
     ingress:
       enabled: true
-      hostname: mp-data-service.127.0.0.1.nip.io 
+      hostname: mp-data-service.127.0.0.1.nip.io
   catchAllRoute:
     enabled: false
   routes: |-
@@ -127,52 +161,60 @@ opa:
 
 # database used for odrl-pap
 postgresql:
+  global:
+    security:
+      # allow the image from the legacy repo
+      allowInsecureImages: true
+  image:
+    repository: bitnamilegacy/postgresql
+  generatePasswords:
+    # -- should a password for the database be generated in the cluster
+    enabled: true
+    # -- name of the secret to store the password in
+    secretName: database-secret
+  auth:
+    # -- name of the secret to take the passowrds from
+    existingSecret: database-secret
+    # -- key of the secrets inside the secret
+    secretKeys:
+      adminPasswordKey: postgres-admin-password
+      userPasswordKey: postgres-user-password
   primary:
+    # -- scripts to be run on intialization
+    initdb:
+      scripts:
+        create.sh: |
+          psql postgresql://postgres:${POSTGRES_PASSWORD}@localhost:5432 -c "CREATE DATABASE keycloak;"
+          psql postgresql://postgres:${POSTGRES_PASSWORD}@localhost:5432 -c "CREATE DATABASE pap;"
     persistence:
       enabled: true      
       # use one of the classes provided by your cluster
       storageClass: local-path
-
 # policy administration point
 odrl-pap:
-  additionalEnvVars:
+  additonalEnvVars:
     # needs to know the providers identity to 
     - name: GENERAL_ORGANIZATION_DID
-      value: did:key:zDnaeh6LHmMZDaPG8Mv7wyStj816FPpNC2Yqxofzrx3wNKA8Y
-  additionalMapping:
-    # -- should an additional mapping.json be loaded
-    enabled: false
-    # -- mapping.json to merged with the defaults
-    # the example would overwrite the default odrl:use to be handled by a custom rego method provided with the additional rego 
-    json: |
-      {
-        "leftOperand": {
-          "vc": {
-            "crole": {
-              "regoPackage": "custom.leftOperand as cus_lo",
-              "regoMethod": "cus_lo.crole(helper.verifiable_credential, helper.organization_did)"
-            }
-          }
-        }
-      }
-  additionalRego:
-    # -- should additional packages be loaded
-    enabled: false
-    packages: |
-      custom.leftOperand.rego: |
-        package custom.leftOperand
-
-        import rego.v1
-
-        ## vc:crole
-        # retrieves the roles from the credential, that target the current organization
-        crole(verifiable_credential,organization_id) := r if {
-            roles := verifiable_credential.credentialSubject.roles
-            orgId := verifiable_credential.issuer
-            role := [rad | some rad in roles; rad.target = orgId ]
-            r = role[_].names; trace(orgId)
-        }
-
+      value: did:key:zDnaeweD2CZEV3GArTbbfUtM3PS5LM2QXx1Ahu1KroezYN6qS
+  database:
+    # -- url to connect the db at
+    url: jdbc:postgresql://postgresql:5432/pap
+    # -- username to access the db
+    username: postgres
+    # -- secret to take the password from
+    existingSecret:
+      enabled: true
+      name: database-secret
+      key: postgres-admin-password
+  deployment:
+    command:
+      - /bin/sh
+    args:
+      - -ec
+      - |
+        #!/bin/sh
+        export GENERAL_ORGANIZATION_DID=did:key:zDnaeweD2CZEV3GArTbbfUtM3PS5LM2QXx1Ahu1KroezYN6qS
+        ./application -Dquarkus.http.host=0.0.0.0
   ingress:
     enabled: true
     hosts:
@@ -182,6 +224,12 @@ odrl-pap:
 
 # database used for scorpio
 postgis:
+  global:
+    security:
+      # allow the image from the legacy repo
+      allowInsecureImages: true
+  image:
+    repository: bitnamilegacy/postgresql
   primary:
     persistence:
       enabled: true      
@@ -192,30 +240,366 @@ postgis:
 scorpio:
   enabled: true
 
-  # configuration for the dataservice at the credentials-config-service
-  ccs:
-    defaultOidcScope:
-      name: default
-    oidcScopes:
-      default:
-        - type: UserCredential
-          trustedParticipantsLists:
-            - http://tir.trust-anchor.svc.cluster.local:8080
-          trustedIssuersLists:
-            - http://trusted-issuers-list:8080
-      operator:
-        - type: OperatorCredential
-          trustedParticipantsLists:
-            - http://tir.trust-anchor.svc.cluster.local:8080
-          trustedIssuersLists:
-            - http://trusted-issuers-list:8080
-
 ## TMForum API
 
 # tmforum apis to support contracting
 tm-forum-api:
   enabled: false
+  ingress:
+    enabled: true
+    hosts:
+      - host: tm-forum-api.127.0.0.1.nip.io
+        paths:
+          - /
 
 # contract management component and the credential type it should register for a bought service
 contract-management:
   enabled: false
+
+keycloak:
+  ingress:
+    enabled: true
+    hostname: keycloak-provider.127.0.0.1.nip.io
+
+  # -- disable the security context, required by the current quarkus container, will be solved in the future chart versions of keycloak
+  containerSecurityContext:
+    enabled: false
+  proxyHeaders: xforwarded
+  proxy: edge
+  service:
+    ports:
+      http: 8080
+  
+  # -- sets memory requests for keycloak
+  # increased above the bitnami defaults to prevent OOMs in linux kernel >=6.14
+  resources:
+    requests:
+      memory: "500Mi"
+      cpu: "0.5"
+    limits:
+      memory: "2Gi"
+      cpu: "1"
+
+  # -- should the db be deployed as part of the keycloak chart
+  postgresql:
+    enabled: false
+  # -- host of the external db to be used
+  externalDatabase:
+    host: postgresql
+    database: keycloak
+    user: postgres
+    existingSecret: database-secret
+    existingSecretPasswordKey: postgres-admin-password
+
+  extraEnvVars:
+    # import the configured realm
+    - name: KEYCLOAK_EXTRA_ARGS
+      value: "--import-realm"
+    # enable the issuance feature
+    - name: KC_FEATURES
+      value: "oid4vc-vci"
+    # password for reading the key store connected to the did
+    - name: STORE_PASS
+      value: test
+    - name: KEYCLOAK_HOSTNAME
+      value: http://keycloak-provider.127.0.0.1.nip.io:8080
+    # keycloak admin password
+    - name: KC_ADMIN_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: issuance-secret
+          key: keycloak-admin
+    # set in accordance with the memory requests, will result in OOM otherwise
+    - name: KC_HEAP_SIZE
+      value: "1024m"
+    # log level for keycloak
+    - name: KEYCLOAK_LOG_LEVEL
+      value: DEBUG
+    # did of the provider
+    - name: DID
+      value: did:key:zDnaeweD2CZEV3GArTbbfUtM3PS5LM2QXx1Ahu1KroezYN6qS
+
+  extraVolumeMounts:
+    - name: did-material
+      mountPath: /did-material/cert.pfx
+      subPath: cert.pfx
+    - name: realms
+      mountPath: /opt/bitnami/keycloak/data/import
+
+  extraVolumes:
+    - name: did-material
+      secret:
+        secretName: provider-identity
+    - name: realms
+      configMap:
+        name: test-realm-realm
+
+  realm:
+    import: true
+    name: test-realm
+    # -- frontend url to be used for the realm
+    frontendURL: http://localhost:8080
+    attributes: |
+      "issuerDid": "${DID}",
+      "vc.user-credential.credential_signing_alg_values_supported": "ES256",
+      "vc.user-credential.credential_build_config.signing_algorithm": "ES256",
+      "vc.user-credential.credential_build_config.token_jws_type": "JWT",
+      "vc.user-credential.credential_build_config.proof_types_supported": "{\"jwt\":{\"proof_signing_alg_values_supported\":[\"ES256\"]}}",
+      "vc.user-credential.format": "jwt_vc",
+      "vc.user-credential.scope": "UserCredential",
+      "vc.user-credential.vct": "UserCredential"
+    clientRoles: |
+      "did:key:zDnaeweD2CZEV3GArTbbfUtM3PS5LM2QXx1Ahu1KroezYN6qS": [
+        {
+          "name": "RESEARCHER",
+          "description": "Integrates new data services or APIs",
+          "clientRole": true
+        },
+        {
+          "name": "VIEWER",
+          "description": "Read-only access to data",
+          "clientRole": true
+        }
+      ]
+
+    users: |
+      {
+        "username": "city-user",
+        "enabled": true,
+        "email": "city@user.org",
+        "firstName": "City",
+        "lastName": "User",
+        "credentials": [
+          {
+            "type": "password",
+            "value": "test"
+          }
+        ],
+        "clientRoles": {
+          "did:key:zDnaeweD2CZEV3GArTbbfUtM3PS5LM2QXx1Ahu1KroezYN6qS": [
+            "RESEARCHER",
+            "VIEWER"
+          ],
+          "account": [
+            "view-profile",
+            "manage-account"
+          ]
+        },
+        "realmRoles": [
+          "user",
+          "default-roles-test-realm"
+        ],
+        "groups": [
+        ]
+      }
+    clientScopes: |
+      {
+        "name": "UserCredential",
+        "description": "OIDC4VC Scope, that adds all properties required for a user.",
+        "protocol": "openid-connect",
+        "attributes": {
+          "include.in.token.scope": "false",
+          "display.on.consent.screen": "false"
+        },
+        "protocolMappers": [
+          {
+            "name": "context-mapper-uc",
+            "protocol": "oid4vc",
+            "protocolMapper": "oid4vc-context-mapper",
+            "config": {
+              "context": "https://www.w3.org/2018/credentials/v1",
+              "supportedCredentialTypes": "UserCredential"
+            }
+          },
+          {
+            "name": "email-mapper-uc",
+            "protocol": "oid4vc",
+            "protocolMapper": "oid4vc-user-attribute-mapper",
+            "config": {
+              "subjectProperty": "email",
+              "userAttribute": "email",
+              "supportedCredentialTypes": "UserCredential"
+            }
+          },
+          {
+            "name": "firstName-mapper-uc",
+            "protocol": "oid4vc",
+            "protocolMapper": "oid4vc-user-attribute-mapper",
+            "config": {
+              "subjectProperty": "firstName",
+              "userAttribute": "firstName",
+              "supportedCredentialTypes": "UserCredential"
+            }
+          },
+          {
+            "name": "street-mapper-uc",
+            "protocol": "oid4vc",
+            "protocolMapper": "oid4vc-static-claim-mapper",
+            "config": {
+              "subjectProperty": "street",
+              "staticValue": "Main Street",
+              "supportedCredentialTypes": "UserCredential"
+            }
+          },
+          {
+            "name": "lastName-mapper-uc",
+            "protocol": "oid4vc",
+            "protocolMapper": "oid4vc-user-attribute-mapper",
+            "config": {
+              "subjectProperty": "lastName",
+              "userAttribute": "lastName",
+              "supportedCredentialTypes": "UserCredential"
+            }
+          },
+          {
+            "name": "role-mapper-uc",
+            "protocol": "oid4vc",
+            "protocolMapper": "oid4vc-target-role-mapper",
+            "config": {
+              "subjectProperty": "roles",
+              "clientId": "did:key:zDnaeweD2CZEV3GArTbbfUtM3PS5LM2QXx1Ahu1KroezYN6qS",
+              "supportedCredentialTypes": "UserCredential"
+            }
+          },
+          {
+            "name": "streetNumber-mapper-uc",
+            "protocol": "oid4vc",
+            "protocolMapper": "oid4vc-static-claim-mapper",
+            "config": {
+              "subjectProperty": "streetNumber",
+              "staticValue": "25",
+              "supportedCredentialTypes": "UserCredential"
+            }
+          },
+          {
+            "name": "city-mapper-uc",
+            "protocol": "oid4vc",
+            "protocolMapper": "oid4vc-static-claim-mapper",
+            "config": {
+              "subjectProperty": "city",
+              "staticValue": "Madrid",
+              "supportedCredentialTypes": "UserCredential"
+            }
+          },
+          {
+            "name": "region-mapper-uc",
+            "protocol": "oid4vc",
+            "protocolMapper": "oid4vc-static-claim-mapper",
+            "config": {
+              "subjectProperty": "region",
+              "staticValue": "Madrid",
+              "supportedCredentialTypes": "UserCredential"
+            }
+          },
+          {
+            "name": "country-mapper-uc",
+            "protocol": "oid4vc",
+            "protocolMapper": "oid4vc-static-claim-mapper",
+            "config": {
+              "subjectProperty": "country",
+              "staticValue": "Spain",
+              "supportedCredentialTypes": "UserCredential"
+            }
+          },
+          {
+            "name": "zipcode-mapper-uc",
+            "protocol": "oid4vc",
+            "protocolMapper": "oid4vc-static-claim-mapper",
+            "config": {
+              "subjectProperty": "zipcode",
+              "staticValue": "28050",
+              "supportedCredentialTypes": "UserCredential"
+            }
+          }
+        ]
+      }
+    clients: |
+      {
+        "clientId": "did:key:zDnaeweD2CZEV3GArTbbfUtM3PS5LM2QXx1Ahu1KroezYN6qS",
+        "enabled": true,
+        "description": "Client to connect test.org",
+        "surrogateAuthRequired": false,
+        "alwaysDisplayInConsole": false,
+        "clientAuthenticatorType": "client-secret",
+        "defaultRoles": [],
+        "redirectUris": [],
+        "webOrigins": [],
+        "notBefore": 0,
+        "bearerOnly": false,
+        "consentRequired": false,
+        "standardFlowEnabled": true,
+        "implicitFlowEnabled": false,
+        "directAccessGrantsEnabled": false,
+        "serviceAccountsEnabled": false,
+        "publicClient": false,
+        "frontchannelLogout": false,
+        "protocol": "oid4vc",
+        "attributes": {
+          "client.secret.creation.time": "1675260539"
+        },
+        "protocolMappers": [
+        ],
+        "authenticationFlowBindingOverrides": {},
+        "fullScopeAllowed": true,
+        "nodeReRegistrationTimeout": -1,
+        "defaultClientScopes": [],
+        "optionalClientScopes": []
+      },
+      {
+        "clientId": "test-cli",
+        "name": "test-cli",
+        "rootUrl": "${authBaseUrl}",
+        "baseUrl": "/realms/test-realm/test-cli/",
+        "surrogateAuthRequired": false,
+        "enabled": true,
+        "alwaysDisplayInConsole": false,
+        "clientAuthenticatorType": "client-secret",
+        "redirectUris": [
+          "/realms/test-realm/test-cli/*"
+        ],
+        "webOrigins": [],
+        "notBefore": 0,
+        "bearerOnly": false,
+        "consentRequired": false,
+        "standardFlowEnabled": true,
+        "implicitFlowEnabled": false,
+        "directAccessGrantsEnabled": true,
+        "serviceAccountsEnabled": false,
+        "publicClient": true,
+        "frontchannelLogout": false,
+        "protocol": "openid-connect",
+        "attributes": {
+          "realm_client": "false",
+          "post.logout.redirect.uris": "+",
+          "pkce.code.challenge.method": "S256"
+        },
+        "authenticationFlowBindingOverrides": {},
+        "fullScopeAllowed": true,
+        "nodeReRegistrationTimeout": 0,
+        "protocolMappers": [
+          {
+            "id": "706c5202-1b03-4fad-a5b8-484287e941f8",
+            "name": "audience resolve",
+            "protocol": "openid-connect",
+            "protocolMapper": "oidc-audience-resolve-mapper",
+            "consentRequired": false,
+            "config": {}
+          }
+        ],
+        "defaultClientScopes": [
+          "web-origins",
+          "acr",
+          "roles",
+          "profile",
+          "basic",
+          "email"
+        ],
+        "optionalClientScopes": [
+          "address",
+          "phone",
+          "offline_access",
+          "organization",
+          "microprofile-jwt",
+          "UserCredential"
+        ]
+      }

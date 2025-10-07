@@ -141,7 +141,7 @@ keycloak:
       value: DEBUG
     # did of the consumer
     - name: DID
-      value: did:key:zDnaeS7Q6DxRB4sdrYx1MN8FQnqvNZHz5c3LgXnhHsx8AJDVf
+      value: DID_CONSUMER
 
   extraVolumeMounts:
     - name: did-material
@@ -173,7 +173,7 @@ keycloak:
       "vc.user-credential.scope": "UserCredential",
       "vc.user-credential.vct": "UserCredential"
     clientRoles: |
-      "did:key:zDnaeweD2CZEV3GArTbbfUtM3PS5LM2QXx1Ahu1KroezYN6qS": [
+      "DID_PROVIDER": [
         {
           "name": "RESEARCHER",
           "description": "Integrates new data services or APIs",
@@ -195,7 +195,7 @@ keycloak:
           }
         ],
         "clientRoles": {
-          "did:key:zDnaeweD2CZEV3GArTbbfUtM3PS5LM2QXx1Ahu1KroezYN6qS": [
+          "DID_PROVIDER": [
             "RESEARCHER"
           ],
           "account": [
@@ -275,7 +275,7 @@ keycloak:
             "protocolMapper": "oid4vc-target-role-mapper",
             "config": {
               "subjectProperty": "roles",
-              "clientId": "did:key:zDnaeweD2CZEV3GArTbbfUtM3PS5LM2QXx1Ahu1KroezYN6qS",
+              "clientId": "DID_PROVIDER",
               "supportedCredentialTypes": "UserCredential"
             }
           },
@@ -333,7 +333,7 @@ keycloak:
       }
     clients: |
       {
-        "clientId": "did:key:zDnaeweD2CZEV3GArTbbfUtM3PS5LM2QXx1Ahu1KroezYN6qS",
+        "clientId": "DID_PROVIDER",
         "enabled": true,
         "description": "Client to connect test.org",
         "surrogateAuthRequired": false,
