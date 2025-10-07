@@ -1,56 +1,198 @@
-# -- no apis offered, thus no authentication framework required
-vcverifier:
-  enabled: false
-# -- no verifier deployed, thus no supporting services required
-credentials-config-service:
-  enabled: false
-# -- no verifier deployed, thus no supporting services required
-trusted-issuers-list:
-  enabled: false
-# -- no trusted-issuers-list deployed, thus no db for it required
-mysql:
-  enabled: false
-# -- no apis offered, thus no policy administration required
-odrl-pap:
-  enabled: false
-# -- no apis offered, thus no policy enforcement required
-apisix:
-  enabled: false
-# -- nothing offered, thus no broker
-scorpio:
-  enabled: false
-# -- no scorpio, thus no db for it
-postgis:
-  enabled: false
-# -- nothing offered, thus no api to offer something required
-tm-forum-api:
-  enabled: false
-# -- nothing offered, thus no contracts need to be managed
-contract-management:
-  enabled: false
+## AUTHENTICATION
 
-# -- database for keycloak as the issuer needs to be registered
-postgresql:
-  # -- should it be enabled? set to false if one outside the chart is used.
+vcverifier:
+  # make the verifier publicly accessible
+  ingress:
+    enabled: true
+    hosts:
+      - host: provider-verifier.127.0.0.1.nip.io
+        paths:
+          - "/"
+  deployment:
+    verifier:
+      # address of the trust anchor
+      tirAddress: http://tir.127.0.0.1.nip.io:8080/
+      did: DID_PROVIDER
+      supportedModes: ["urlEncoded"]
+    # public address of the verifier, to be provided as oid-config
+    server:
+      host: http://provider-verifier.127.0.0.1.nip.io:8080
+    # access to the internal credentials-config-service
+    configRepo:
+      configEndpoint: http://credentials-config-service:8080
+
+credentials-config-service:
   enabled: true
+  registration:
+    enabled: true
+    services:
+      - id: data-service
+        defaultOidcScope: "default"
+        oidcScopes:
+          "default":
+            credentials: 
+              - type: UserCredential
+                trustedParticipantsLists:
+                  - http://tir.trust-anchor.svc.cluster.local:8080
+                trustedIssuersLists:
+                  - http://trusted-issuers-list:8080
+                jwtInclusion:
+                  enabled: true
+                  fullInclusion: true
+
+
+
+# internal trusted issuers list
+trusted-issuers-list:
+  # only open for demo purposes
+  ingress:
+    til:
+      enabled: true
+      hosts:
+        - host: til-provider.127.0.0.1.nip.io
+          paths:
+            - /
+
+# mysql used for the credentials config service
+mysql:
+  primary:
+    persistence:
+      enabled: true      
+      # use one of the classes provided by your cluster
+      storageClass: local-path
+
+## AUTHORIZATION
+
+# serves configuration of the dataspace
+dataSpaceConfig:
+  enabled: true
+  
+  ## Defaults
+  serviceType: ClusterIP
+  port: 3002
+  supportedModels:
+    - "https://raw.githubusercontent.com/smart-data-models/dataModel.Consumption/master/ConsumptionPoint/schema.json"
+    - "https://raw.githubusercontent.com/smart-data-models/dataModel.Consumption/master/ConsumptionCost/schema.json"
+  supportedProtocols:
+    - http
+    - https
+  authenticationProtocols:
+    - oid4vp
+
+# -- apisix configuration
+apisix:
   global:
     security:
       # allow the image from the legacy repo
       allowInsecureImages: true
-  # -- configuration of the used image
   image:
-    # -- repository where the image is held, see https://github.com/bitnami/charts/issues/35164 for further info
+    repository: bitnamilegacy/apisix
+  ingressController:
+    image:
+      repository: bitnamilegacy/apisix-ingress-controller
+  waitContainer:
+    image:
+      repository: bitnamilegacy/os-shell
+  etcd:
+    global:
+      security:
+        # allow the image from the legacy repo
+        allowInsecureImages: true
+    image:
+      repository: bitnamilegacy/etcd
+  dataPlane:
+    # -- configure the ingress to the data service
+    ingress:
+      enabled: true
+      hostname: mp-data-service.127.0.0.1.nip.io
+      extraHosts:
+        - name: mp-tmf-api.127.0.0.1.nip.io
+          path: /
+  catchAllRoute:
+    enabled: false
+  routes: |-
+    # route to answer all openid-config requests to the data service from within the verifier
+    - uri: /.well-known/openid-configuration
+      host: mp-data-service.127.0.0.1.nip.io
+      upstream:
+        nodes:
+          verifier:3000: 1
+        type: roundrobin
+      plugins:
+        proxy-rewrite:
+          uri: /services/data-service/.well-known/openid-configuration
+    # route to provider data-space-configuration
+    - uri: /.well-known/data-space-configuration
+      host: mp-data-service.127.0.0.1.nip.io
+      upstream:
+        nodes:
+          dsconfig:3002: 1
+        type: roundrobin
+      plugins:
+        proxy-rewrite:
+          uri: /.well-known/data-space-configuration/data-space-configuration.json
+        response-rewrite:
+          headers:
+            set:
+              content-type: application/json
+    # central route to the dataservice
+    - uri: /*
+      host: mp-data-service.127.0.0.1.nip.io
+      upstream:
+        nodes:
+          data-service-scorpio:9090: 1
+        type: roundrobin
+      plugins:
+        # verify the jwt at the verifiers endpoint
+        openid-connect:
+          bearer_only: true
+          use_jwks: true
+          client_id: data-service
+          client_secret: unused
+          ssl_verify: false
+          discovery: http://verifier:3000/services/data-service/.well-known/openid-configuration
+        # request decisions at opa
+        opa:
+          host: "http://localhost:8181"
+          policy: policy/main
+          with_body: true
+    - uri: /*
+      host: mp-tmf-api.127.0.0.1.nip.io
+      upstream:
+        nodes:
+          tm-forum-api:8080: 1
+        type: roundrobin
+      plugins:
+        openid-connect:
+          bearer_only: true
+          use_jwks: true
+          client_id: data-service
+          client_secret: unused
+          ssl_verify: false
+          discovery: http://verifier:3000/services/data-service/.well-known/openid-configuration
+        opa:
+          host: "http://localhost:8181"
+          policy: policy/main
+          with_body: true
+
+# -- configuration for the open-policy-agent to be deployed as part of the connector fulfilling the role of the PDP, as a sidecar to apisix
+opa:
+  # -- should an opa sidecar be deployed to apisix
+  enabled: true
+
+# database used for odrl-pap
+postgresql:
+  global:
+    security:
+      # allow the image from the legacy repo
+      allowInsecureImages: true
+  image:
     repository: bitnamilegacy/postgresql
-    # -- fixes the unpullable image referenced in the chart
-    tag: 13.18.0
-  # -- allows to set a fixed name for the services
-  fullnameOverride: postgresql
   generatePasswords:
     # -- should a password for the database be generated in the cluster
     enabled: true
     # -- name of the secret to store the password in
     secretName: database-secret
-  # -- configure authentication to mysql
   auth:
     # -- name of the secret to take the passowrds from
     existingSecret: database-secret
@@ -58,33 +200,72 @@ postgresql:
     secretKeys:
       adminPasswordKey: postgres-admin-password
       userPasswordKey: postgres-user-password
-  # -- configuration for the primary of the db
   primary:
     # -- scripts to be run on intialization
     initdb:
       scripts:
         create.sh: |
           psql postgresql://postgres:${POSTGRES_PASSWORD}@localhost:5432 -c "CREATE DATABASE keycloak;"
+          psql postgresql://postgres:${POSTGRES_PASSWORD}@localhost:5432 -c "CREATE DATABASE pap;"
+    persistence:
+      enabled: true      
+      # use one of the classes provided by your cluster
+      storageClass: local-path
+# policy administration point
+odrl-pap:
+  additonalEnvVars:
+    # needs to know the providers identity to 
+    - name: GENERAL_ORGANIZATION_DID
+      value: DID_PROVIDER
+  database:
+    # -- url to connect the db at
+    url: jdbc:postgresql://postgresql:5432/pap
+    # -- username to access the db
+    username: postgres
+    # -- secret to take the password from
+    existingSecret:
+      enabled: true
+      name: database-secret
+      key: postgres-admin-password
+  deployment:
+    command:
+      - /bin/sh
+    args:
+      - -ec
+      - |
+        #!/bin/sh
+        export GENERAL_ORGANIZATION_DID=DID_PROVIDER
+        ./application -Dquarkus.http.host=0.0.0.0
+  ingress:
+    enabled: true
+    hosts:
+      - host: pap-provider.127.0.0.1.nip.io
+        paths:
+          - "/"
+
+# database used for scorpio
+postgis:
+  global:
+    security:
+      # allow the image from the legacy repo
+      allowInsecureImages: true
+  image:
+    repository: bitnamilegacy/postgresql
+  primary:
     persistence:
       enabled: true      
       # use one of the classes provided by your cluster
       storageClass: local-path
 
-# -- keycloak as issuer of verifiable credentials is required
+# the data service
+scorpio:
+  enabled: true
+
 keycloak:
   ingress:
     enabled: true
-    hostname: keycloak-consumer.127.0.0.1.nip.io
-  
-  global:
-    security:
-      # allow the image from the legacy repo
-      allowInsecureImages: true
-  # -- configuration of the used image
-  image:
-    # -- repository where the image is held, see https://github.com/bitnami/charts/issues/35164 for further info
-    repository: bitnamilegacy/keycloak
-    tag: 26.3.2-debian-12-r0
+    hostname: keycloak-provider.127.0.0.1.nip.io
+
   # -- disable the security context, required by the current quarkus container, will be solved in the future chart versions of keycloak
   containerSecurityContext:
     enabled: false
@@ -126,7 +307,7 @@ keycloak:
     - name: STORE_PASS
       value: test
     - name: KEYCLOAK_HOSTNAME
-      value: http://keycloak-consumer.127.0.0.1.nip.io:8080
+      value: http://keycloak-provider.127.0.0.1.nip.io:8080
     # keycloak admin password
     - name: KC_ADMIN_PASSWORD
       valueFrom:
@@ -139,9 +320,9 @@ keycloak:
     # log level for keycloak
     - name: KEYCLOAK_LOG_LEVEL
       value: DEBUG
-    # did of the consumer
+    # did of the provider
     - name: DID
-      value: did:key:zDnaeS7Q6DxRB4sdrYx1MN8FQnqvNZHz5c3LgXnhHsx8AJDVf
+      value: DID_PROVIDER
 
   extraVolumeMounts:
     - name: did-material
@@ -153,7 +334,7 @@ keycloak:
   extraVolumes:
     - name: did-material
       secret:
-        secretName: consumer-identity
+        secretName: provider-identity
     - name: realms
       configMap:
         name: test-realm-realm
@@ -173,10 +354,15 @@ keycloak:
       "vc.user-credential.scope": "UserCredential",
       "vc.user-credential.vct": "UserCredential"
     clientRoles: |
-      "did:key:zDnaeweD2CZEV3GArTbbfUtM3PS5LM2QXx1Ahu1KroezYN6qS": [
+      "DID_PROVIDER": [
         {
-          "name": "RESEARCHER",
-          "description": "Integrates new data services or APIs",
+          "name": "READER",
+          "description": "Is allowed to see offers etc.",
+          "clientRole": true
+        },
+        {
+          "name": "OPERATOR",
+          "description": "Is allowed to operate clusters.",
           "clientRole": true
         }
       ]
@@ -195,8 +381,9 @@ keycloak:
           }
         ],
         "clientRoles": {
-          "did:key:zDnaeweD2CZEV3GArTbbfUtM3PS5LM2QXx1Ahu1KroezYN6qS": [
-            "RESEARCHER"
+          "DID_PROVIDER": [
+            "READER",
+            "OPERATOR"
           ],
           "account": [
             "view-profile",
@@ -275,7 +462,7 @@ keycloak:
             "protocolMapper": "oid4vc-target-role-mapper",
             "config": {
               "subjectProperty": "roles",
-              "clientId": "did:key:zDnaeweD2CZEV3GArTbbfUtM3PS5LM2QXx1Ahu1KroezYN6qS",
+              "clientId": "DID_PROVIDER",
               "supportedCredentialTypes": "UserCredential"
             }
           },
@@ -295,7 +482,7 @@ keycloak:
             "protocolMapper": "oid4vc-static-claim-mapper",
             "config": {
               "subjectProperty": "city",
-              "staticValue": "Madrid",
+              "staticValue": "Dresden",
               "supportedCredentialTypes": "UserCredential"
             }
           },
@@ -305,7 +492,7 @@ keycloak:
             "protocolMapper": "oid4vc-static-claim-mapper",
             "config": {
               "subjectProperty": "region",
-              "staticValue": "Madrid",
+              "staticValue": "Saxony",
               "supportedCredentialTypes": "UserCredential"
             }
           },
@@ -315,7 +502,7 @@ keycloak:
             "protocolMapper": "oid4vc-static-claim-mapper",
             "config": {
               "subjectProperty": "country",
-              "staticValue": "Spain",
+              "staticValue": "Germany",
               "supportedCredentialTypes": "UserCredential"
             }
           },
@@ -325,7 +512,7 @@ keycloak:
             "protocolMapper": "oid4vc-static-claim-mapper",
             "config": {
               "subjectProperty": "zipcode",
-              "staticValue": "28041",
+              "staticValue": "01169",
               "supportedCredentialTypes": "UserCredential"
             }
           }
@@ -333,7 +520,7 @@ keycloak:
       }
     clients: |
       {
-        "clientId": "did:key:zDnaeweD2CZEV3GArTbbfUtM3PS5LM2QXx1Ahu1KroezYN6qS",
+        "clientId": "DID_PROVIDER",
         "enabled": true,
         "description": "Client to connect test.org",
         "surrogateAuthRequired": false,
@@ -421,3 +608,104 @@ keycloak:
           "UserCredential"
         ]
       }
+
+
+## Marketplace configuration
+
+# tmforum apis to support contracting
+tm-forum-api:
+  enabled: true
+  ingress:
+    enabled: true
+    hosts:
+      - host: tm-forum-api.127.0.0.1.nip.io
+        paths:
+          - /
+
+# contract management component and the credential type it should register for a bought service
+contract-management:
+  enabled: true
+
+marketplace:
+  enabled: false
+  externalUrl: https://marketplace.127.0.0.1.nip.io
+  bizEcosystemApis:
+    tmForum:
+      catalog:
+        host: provider-tm-forum-api-product-catalog
+        port: 8080
+        path: /tmf-api/productCatalogManagement/v4
+      inventory:
+        host: provider-tm-forum-api-product-inventory
+        port: 8080
+        path: /tmf-api/productInventory/v4
+      ordering:
+        host: provider-tm-forum-api-product-ordering-management
+        port: 8080
+        path: /tmf-api/productOrderingManagement/v4
+      billing:
+        host: provider-tm-forum-api-account
+        port: 8080
+        path: /tmf-api/accountManagement/v4
+      usage:
+        host: provider-tm-forum-api-usage-management
+        port: 8080
+        path: /tmf-api/usageManagement/v4
+      party:
+        host: provider-tm-forum-api-party-catalog
+        port: 8080
+        path: /tmf-api/party/v4
+      customer:
+        host: provider-tm-forum-api-customer-management
+        port: 8080
+        path: /tmf-api/customerManagement/v4 
+      resources:
+        host: provider-tm-forum-api-resource-catalog
+        port: 8080
+        path: /tmf-api/resourceCatalog/v4
+      services:
+        host: provider-tm-forum-api-service-catalog
+        port: 8080
+        path: /tmf-api/serviceCatalogManagement/v4
+      resourceInventory:
+        host: provider-tm-forum-api-resource-inventory
+        port: 8080
+        path: /tmf-api/resourceInventoryManagement/v4
+      inventory:
+        host: provider-tm-forum-api-product-inventory
+        port: 8080
+        path: /tmf-api/productInventory/v4
+
+  bizEcosystemChargingBackend:
+    deployment:
+      image:
+        tag: 10.0.1
+    extraEnvVars:
+      - name: BAE_CB_MONGO_PASS
+        valueFrom:
+          secretKeyRef:
+            name: marketplace-secret-env
+            key: MONGO_BAE_CHARGING_PW
+      - name: BAE_CB_CUSTOMER_BILL
+        value: "http://provider-tm-forum-api-customer-bill-management:8080/tmf-api/customerBillManagement/v4"
+
+  bizEcosystemLogicProxy:
+    ingress: 
+      enabled: true
+      annotations:
+        traefik.ingress.kubernetes.io/router.tls: "true"
+      hosts: 
+        - host: marketplace.127.0.0.1.nip.io
+          paths: 
+            - "/"
+
+    additionalEnvVars:
+      - name: BAE_LP_SIOP_IS_REDIRECTION
+        value: "true"
+      - name: BAE_LP_PURCHASE_ENABLED
+        value: "true"
+      - name: BAE_LP_MONGO_PASS
+        valueFrom:
+          secretKeyRef:
+            name: marketplace-secret-env
+            key: MONGO_BAE_BELP_PW

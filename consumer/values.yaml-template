@@ -175,13 +175,8 @@ keycloak:
     clientRoles: |
       "DID_PROVIDER": [
         {
-          "name": "READER",
-          "description": "Is allowed to see offers etc.",
-          "clientRole": true
-        },
-        {
-          "name": "OPERATOR",
-          "description": "Is allowed to operate clusters.",
+          "name": "RESEARCHER",
+          "description": "Integrates new data services or APIs",
           "clientRole": true
         }
       ]
@@ -201,8 +196,7 @@ keycloak:
         ],
         "clientRoles": {
           "DID_PROVIDER": [
-            "READER",
-            "OPERATOR"
+            "RESEARCHER"
           ],
           "account": [
             "view-profile",
@@ -301,7 +295,7 @@ keycloak:
             "protocolMapper": "oid4vc-static-claim-mapper",
             "config": {
               "subjectProperty": "city",
-              "staticValue": "Dresden",
+              "staticValue": "Madrid",
               "supportedCredentialTypes": "UserCredential"
             }
           },
@@ -311,7 +305,7 @@ keycloak:
             "protocolMapper": "oid4vc-static-claim-mapper",
             "config": {
               "subjectProperty": "region",
-              "staticValue": "Saxony",
+              "staticValue": "Madrid",
               "supportedCredentialTypes": "UserCredential"
             }
           },
@@ -321,7 +315,7 @@ keycloak:
             "protocolMapper": "oid4vc-static-claim-mapper",
             "config": {
               "subjectProperty": "country",
-              "staticValue": "Germany",
+              "staticValue": "Spain",
               "supportedCredentialTypes": "UserCredential"
             }
           },
@@ -331,7 +325,7 @@ keycloak:
             "protocolMapper": "oid4vc-static-claim-mapper",
             "config": {
               "subjectProperty": "zipcode",
-              "staticValue": "01169",
+              "staticValue": "28041",
               "supportedCredentialTypes": "UserCredential"
             }
           }

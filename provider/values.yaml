@@ -1,7 +1,3 @@
-# -- issuance is not required in this example
-keycloak:
-  enabled: false
-
 ## AUTHENTICATION
 
 vcverifier:
@@ -16,7 +12,7 @@ vcverifier:
     verifier:
       # address of the trust anchor
       tirAddress: http://tir.127.0.0.1.nip.io:8080/
-      did: PROVIDER_DID
+      did: did:key:zDnaeweD2CZEV3GArTbbfUtM3PS5LM2QXx1Ahu1KroezYN6qS
       supportedModes: ["urlEncoded"]
     # public address of the verifier, to be provided as oid-config
     server:
@@ -75,8 +71,8 @@ dataSpaceConfig:
   serviceType: ClusterIP
   port: 3002
   supportedModels:
-    - "https://raw.githubusercontent.com/smart-data-models/dataModel.Consumption/master/ConsumptionPoint/schema.json"
-    - "https://raw.githubusercontent.com/smart-data-models/dataModel.Consumption/master/ConsumptionCost/schema.json"
+    - "https://raw.githubusercontent.com/smart-data-models/dataModel.Environment/master/AirQualityObserved/schema.json"
+    - "https://raw.githubusercontent.com/smart-data-models/dataModel.Transportation/master/Vehicle/schema.json"
   supportedProtocols:
     - http
     - https
@@ -108,7 +104,7 @@ apisix:
     # -- configure the ingress to the data service
     ingress:
       enabled: true
-      hostname: mp-data-service.127.0.0.1.nip.io 
+      hostname: mp-data-service.127.0.0.1.nip.io
   catchAllRoute:
     enabled: false
   routes: |-
@@ -199,7 +195,7 @@ odrl-pap:
   additonalEnvVars:
     # needs to know the providers identity to 
     - name: GENERAL_ORGANIZATION_DID
-      value: PROVIDER_DID
+      value: did:key:zDnaeweD2CZEV3GArTbbfUtM3PS5LM2QXx1Ahu1KroezYN6qS
   database:
     # -- url to connect the db at
     url: jdbc:postgresql://postgresql:5432/pap
@@ -210,6 +206,15 @@ odrl-pap:
       enabled: true
       name: database-secret
       key: postgres-admin-password
+  deployment:
+    command:
+      - /bin/sh
+    args:
+      - -ec
+      - |
+        #!/bin/sh
+        export GENERAL_ORGANIZATION_DID=did:key:zDnaeweD2CZEV3GArTbbfUtM3PS5LM2QXx1Ahu1KroezYN6qS
+        ./application -Dquarkus.http.host=0.0.0.0
   ingress:
     enabled: true
     hosts:
@@ -240,16 +245,16 @@ scorpio:
 # tmforum apis to support contracting
 tm-forum-api:
   enabled: false
-#   ingress:
-#     enabled: true
-#     hosts:
-#       - host: tm-forum-api.127.0.0.1.nip.io
-#         paths:
-#           - /
+  ingress:
+    enabled: true
+    hosts:
+      - host: tm-forum-api.127.0.0.1.nip.io
+        paths:
+          - /
 
 # contract management component and the credential type it should register for a bought service
 contract-management:
-  enabled: true
+  enabled: false
 
 keycloak:
   ingress:
@@ -312,7 +317,7 @@ keycloak:
       value: DEBUG
     # did of the provider
     - name: DID
-      value: did:key:zDnaeTxVzHwsabtKLR8nMLBvKBH6k28vXCypAmJt7QCtiQCy4
+      value: did:key:zDnaeweD2CZEV3GArTbbfUtM3PS5LM2QXx1Ahu1KroezYN6qS
 
   extraVolumeMounts:
     - name: did-material
@@ -344,26 +349,26 @@ keycloak:
       "vc.user-credential.scope": "UserCredential",
       "vc.user-credential.vct": "UserCredential"
     clientRoles: |
-      "did:key:zDnaeTxVzHwsabtKLR8nMLBvKBH6k28vXCypAmJt7QCtiQCy4": [
+      "did:key:zDnaeweD2CZEV3GArTbbfUtM3PS5LM2QXx1Ahu1KroezYN6qS": [
         {
-          "name": "READER",
-          "description": "Is allowed to see offers etc.",
+          "name": "RESEARCHER",
+          "description": "Integrates new data services or APIs",
           "clientRole": true
         },
         {
-          "name": "OPERATOR",
-          "description": "Is allowed to operate clusters.",
+          "name": "VIEWER",
+          "description": "Read-only access to data",
           "clientRole": true
         }
       ]
 
     users: |
       {
-        "username": "test-user",
+        "username": "city-user",
         "enabled": true,
-        "email": "test@user.org",
-        "firstName": "Test",
-        "lastName": "Reader",
+        "email": "city@user.org",
+        "firstName": "City",
+        "lastName": "User",
         "credentials": [
           {
             "type": "password",
@@ -371,9 +376,9 @@ keycloak:
           }
         ],
         "clientRoles": {
-          "did:key:zDnaeTxVzHwsabtKLR8nMLBvKBH6k28vXCypAmJt7QCtiQCy4": [
-            "READER",
-            "OPERATOR"
+          "did:key:zDnaeweD2CZEV3GArTbbfUtM3PS5LM2QXx1Ahu1KroezYN6qS": [
+            "RESEARCHER",
+            "VIEWER"
           ],
           "account": [
             "view-profile",
@@ -452,7 +457,7 @@ keycloak:
             "protocolMapper": "oid4vc-target-role-mapper",
             "config": {
               "subjectProperty": "roles",
-              "clientId": "did:key:zDnaeTxVzHwsabtKLR8nMLBvKBH6k28vXCypAmJt7QCtiQCy4",
+              "clientId": "did:key:zDnaeweD2CZEV3GArTbbfUtM3PS5LM2QXx1Ahu1KroezYN6qS",
               "supportedCredentialTypes": "UserCredential"
             }
           },
@@ -462,7 +467,7 @@ keycloak:
             "protocolMapper": "oid4vc-static-claim-mapper",
             "config": {
               "subjectProperty": "streetNumber",
-              "staticValue": "10",
+              "staticValue": "25",
               "supportedCredentialTypes": "UserCredential"
             }
           },
@@ -472,7 +477,7 @@ keycloak:
             "protocolMapper": "oid4vc-static-claim-mapper",
             "config": {
               "subjectProperty": "city",
-              "staticValue": "Dresden",
+              "staticValue": "Madrid",
               "supportedCredentialTypes": "UserCredential"
             }
           },
@@ -482,7 +487,7 @@ keycloak:
             "protocolMapper": "oid4vc-static-claim-mapper",
             "config": {
               "subjectProperty": "region",
-              "staticValue": "Saxony",
+              "staticValue": "Madrid",
               "supportedCredentialTypes": "UserCredential"
             }
           },
@@ -492,7 +497,7 @@ keycloak:
             "protocolMapper": "oid4vc-static-claim-mapper",
             "config": {
               "subjectProperty": "country",
-              "staticValue": "Germany",
+              "staticValue": "Spain",
               "supportedCredentialTypes": "UserCredential"
             }
           },
@@ -502,7 +507,7 @@ keycloak:
             "protocolMapper": "oid4vc-static-claim-mapper",
             "config": {
               "subjectProperty": "zipcode",
-              "staticValue": "01169",
+              "staticValue": "28050",
               "supportedCredentialTypes": "UserCredential"
             }
           }
@@ -510,7 +515,7 @@ keycloak:
       }
     clients: |
       {
-        "clientId": "did:key:zDnaeTxVzHwsabtKLR8nMLBvKBH6k28vXCypAmJt7QCtiQCy4",
+        "clientId": "did:key:zDnaeweD2CZEV3GArTbbfUtM3PS5LM2QXx1Ahu1KroezYN6qS",
         "enabled": true,
         "description": "Client to connect test.org",
         "surrogateAuthRequired": false,

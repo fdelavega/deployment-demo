@@ -1,7 +1,3 @@
-# -- issuance is not required in this example
-keycloak:
-  enabled: false
-
 ## AUTHENTICATION
 
 vcverifier:
@@ -75,8 +71,8 @@ dataSpaceConfig:
   serviceType: ClusterIP
   port: 3002
   supportedModels:
-    - "https://raw.githubusercontent.com/smart-data-models/dataModel.Consumption/master/ConsumptionPoint/schema.json"
-    - "https://raw.githubusercontent.com/smart-data-models/dataModel.Consumption/master/ConsumptionCost/schema.json"
+    - "https://raw.githubusercontent.com/smart-data-models/dataModel.Environment/master/AirQualityObserved/schema.json"
+    - "https://raw.githubusercontent.com/smart-data-models/dataModel.Transportation/master/Vehicle/schema.json"
   supportedProtocols:
     - http
     - https
@@ -108,7 +104,7 @@ apisix:
     # -- configure the ingress to the data service
     ingress:
       enabled: true
-      hostname: mp-data-service.127.0.0.1.nip.io 
+      hostname: mp-data-service.127.0.0.1.nip.io
   catchAllRoute:
     enabled: false
   routes: |-
@@ -210,6 +206,15 @@ odrl-pap:
       enabled: true
       name: database-secret
       key: postgres-admin-password
+  deployment:
+    command:
+      - /bin/sh
+    args:
+      - -ec
+      - |
+        #!/bin/sh
+        export GENERAL_ORGANIZATION_DID=DID_PROVIDER
+        ./application -Dquarkus.http.host=0.0.0.0
   ingress:
     enabled: true
     hosts:
@@ -346,24 +351,24 @@ keycloak:
     clientRoles: |
       "DID_PROVIDER": [
         {
-          "name": "READER",
-          "description": "Is allowed to see offers etc.",
+          "name": "RESEARCHER",
+          "description": "Integrates new data services or APIs",
           "clientRole": true
         },
         {
-          "name": "OPERATOR",
-          "description": "Is allowed to operate clusters.",
+          "name": "VIEWER",
+          "description": "Read-only access to data",
           "clientRole": true
         }
       ]
 
     users: |
       {
-        "username": "test-user",
+        "username": "city-user",
         "enabled": true,
-        "email": "test@user.org",
-        "firstName": "Test",
-        "lastName": "Reader",
+        "email": "city@user.org",
+        "firstName": "City",
+        "lastName": "User",
         "credentials": [
           {
             "type": "password",
@@ -372,8 +377,8 @@ keycloak:
         ],
         "clientRoles": {
           "DID_PROVIDER": [
-            "READER",
-            "OPERATOR"
+            "RESEARCHER",
+            "VIEWER"
           ],
           "account": [
             "view-profile",
@@ -462,7 +467,7 @@ keycloak:
             "protocolMapper": "oid4vc-static-claim-mapper",
             "config": {
               "subjectProperty": "streetNumber",
-              "staticValue": "10",
+              "staticValue": "25",
               "supportedCredentialTypes": "UserCredential"
             }
           },
@@ -472,7 +477,7 @@ keycloak:
             "protocolMapper": "oid4vc-static-claim-mapper",
             "config": {
               "subjectProperty": "city",
-              "staticValue": "Dresden",
+              "staticValue": "Madrid",
               "supportedCredentialTypes": "UserCredential"
             }
           },
@@ -482,7 +487,7 @@ keycloak:
             "protocolMapper": "oid4vc-static-claim-mapper",
             "config": {
               "subjectProperty": "region",
-              "staticValue": "Saxony",
+              "staticValue": "Madrid",
               "supportedCredentialTypes": "UserCredential"
             }
           },
@@ -492,7 +497,7 @@ keycloak:
             "protocolMapper": "oid4vc-static-claim-mapper",
             "config": {
               "subjectProperty": "country",
-              "staticValue": "Germany",
+              "staticValue": "Spain",
               "supportedCredentialTypes": "UserCredential"
             }
           },
@@ -502,7 +507,7 @@ keycloak:
             "protocolMapper": "oid4vc-static-claim-mapper",
             "config": {
               "subjectProperty": "zipcode",
-              "staticValue": "01169",
+              "staticValue": "28050",
               "supportedCredentialTypes": "UserCredential"
             }
           }
