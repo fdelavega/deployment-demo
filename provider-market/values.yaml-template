@@ -39,6 +39,16 @@ credentials-config-service:
                 jwtInclusion:
                   enabled: true
                   fullInclusion: true
+          "operator":
+            credentials:
+              - type: OperatorCredential
+                trustedParticipantsLists:
+                  - http://tir.trust-anchor.svc.cluster.local:8080
+                trustedIssuersLists:
+                  - http://trusted-issuers-list:8080
+                jwtInclusion:
+                  enabled: true
+                  fullInclusion: true
 
 
 
