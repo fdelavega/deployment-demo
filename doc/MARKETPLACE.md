@@ -38,7 +38,14 @@ curl -X POST http://til-provider.127.0.0.1.nip.io:8080/issuer \
   --header 'Content-Type: application/json' \
   --data "{
       \"did\": \"$CONSUMER_DID\",
-      \"credentials\": []
+      \"credentials\": [
+          {
+              \"credentialsType\": \"OperatorCredential\"
+          },
+          {
+              \"credentialsType\": \"UserCredential\"
+          }
+      ]
   }"
 ```
 
@@ -400,7 +407,7 @@ List offerings
 Try to access K8SCluster entities
 ```sh
 export OPERATOR_CREDENTIAL=$(./scripts/get_credential.sh http://keycloak-consumer.127.0.0.1.nip.io:8080 operator-credential operator); echo ${OPERATOR_CREDENTIAL}
-export OPERATOR_ACCESS_TOKEN=$(./scripts/get_access_token_oid4vp.sh http://mp-data-service.127.0.0.1.nip.io:8080 $OPERATOR_CREDENTIAL default); echo $OPERATOR_ACCESS_TOKEN
+export OPERATOR_ACCESS_TOKEN=$(./scripts/get_access_token_oid4vp.sh http://mp-data-service.127.0.0.1.nip.io:8080 $OPERATOR_CREDENTIAL operator); echo $OPERATOR_ACCESS_TOKEN
 
 curl -X GET http://mp-data-service.127.0.0.1.nip.io:8080/ngsi-ld/v1/entities?type=K8SCluster \
     -H 'Accept: */*' \
@@ -451,7 +458,7 @@ Check the new policy has been created
 Get an operator credential
 ```sh
   export OPERATOR_CREDENTIAL=$(./scripts/get_credential.sh http://keycloak-consumer.127.0.0.1.nip.io:8080 operator-credential operator); echo ${OPERATOR_CREDENTIAL}
-  export OPERATOR_ACCESS_TOKEN=$(./scripts/get_access_token_oid4vp.sh http://mp-data-service.127.0.0.1.nip.io:8080 $OPERATOR_CREDENTIAL default); echo $OPERATOR_ACCESS_TOKEN
+  export OPERATOR_ACCESS_TOKEN=$(./scripts/get_access_token_oid4vp.sh http://mp-data-service.127.0.0.1.nip.io:8080 $OPERATOR_CREDENTIAL operator); echo $OPERATOR_ACCESS_TOKEN
 ```
 
 Access the acquired data
