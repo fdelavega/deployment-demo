@@ -1,5 +1,7 @@
 # Marketplace
 
+In this case we are going to reuse the trust-anchor and identities from the DEPLOYMENT
+
 Deploy customer connector
 ```shell
   export CONSUMER_DID=$(cat ./consumer-identity/did.json | jq .id -r); echo $CONSUMER_DID
