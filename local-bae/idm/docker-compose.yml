@@ -1,0 +1,19 @@
+version: "2"
+
+services:
+   mysql:
+     platform: linux/x86_64
+     image: mysql:5.7
+     volumes:
+       - ./vol-mysql:/var/lib/mysql
+       - ./initdb:/docker-entrypoint-initdb.d:ro
+     environment:
+       - MYSQL_ROOT_PASSWORD=idm
+
+   fiware-idm:
+     image: fiware/idm:7.9.1
+     ports:
+       - "3000:3000"
+     environment:
+       - IDM_DB_HOST=mysql
+

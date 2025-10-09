@@ -1,0 +1,32 @@
+version: '3'
+
+services:
+  postgres:
+    image: postgis/postgis
+    platform: linux/amd64
+    volumes:
+      - ./postgres-data:/var/lib/postgresql/data
+    networks:
+      - dome
+    ports:
+      - "5432"
+    environment:
+      POSTGRES_USER: ngb
+      POSTGRES_PASSWORD: ngb
+      POSTGRES_DB: ngb
+
+  scorpio:
+    image: scorpiobroker/all-in-one-runner:java-4.1.10
+    platform: linux/amd64
+    networks:
+      - dome
+    environment:
+      DBHOST: postgres
+    ports:
+      - "1026:9090"
+    depends_on:
+      - postgres
+
+networks:
+  dome:
+    external: true

@@ -1,0 +1,271 @@
+version: '3'
+
+services:
+  party-catalog:
+    image: quay.io/fiware/tmforum-party-catalog:1.3.16
+    ports:
+      - 8633:8080
+    networks:
+      - dome
+    environment:
+      ENDPOINTS_ALL_PORT: 9090
+      MICRONAUT_SERVER_PORT: 8080
+      MICRONAUT_METRICS_ENABLED: true
+      ENDPOINTS_HEALTH_ENABLED: true
+      LOGGER_LEVELS_ROOT: DEBUG
+      MICRONAUT_CACHES_ENTITIES_MAXIMUM_SIZE: 1000
+      MICRONAUT_CACHES_ENTITIES_EXPIRE_AFTER_WRITE: 2s
+      MICRONAUT_CACHES_ENTITIES_EXPIRE_AFTER_ACCESS: 2s
+      MICRONAUT_HTTP_SERVICES_READ_TIMEOUT: 30s
+      MICRONAUT_HTTP_SERVICES_NGSI_PATH: ngsi-ld/v1
+      MICRONAUT_HTTP_SERVICES_NGSI_URL: http://scorpio:9090
+      GENERAL_BASEPATH: /
+      # GENERAL_CONTEXT_URL: https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld
+      GENERAL_NGSILDORQUERYVALUE: ","
+      GENERAL_NGSILDORQUERYKEY: ","
+      GENERAL_ENCLOSEQUERY: false
+
+  account:
+    image: quay.io/fiware/tmforum-account:1.3.16
+    ports:
+      - 8639:8080
+    networks:
+      - dome
+    environment:
+      ENDPOINTS_ALL_PORT: 9090
+      MICRONAUT_SERVER_PORT: 8080
+      MICRONAUT_METRICS_ENABLED: true
+      ENDPOINTS_HEALTH_ENABLED: true
+      LOGGER_LEVELS_ROOT: INFO
+      MICRONAUT_CACHES_ENTITIES_MAXIMUM_SIZE: 1000
+      MICRONAUT_CACHES_ENTITIES_EXPIRE_AFTER_WRITE: 2s
+      MICRONAUT_CACHES_ENTITIES_EXPIRE_AFTER_ACCESS: 2s
+      MICRONAUT_HTTP_SERVICES_READ_TIMEOUT: 30s
+      MICRONAUT_HTTP_SERVICES_NGSI_PATH: ngsi-ld/v1
+      MICRONAUT_HTTP_SERVICES_NGSI_URL: http://scorpio:9090
+      GENERAL_BASEPATH: /
+      # GENERAL_CONTEXT_URL: https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld
+      GENERAL_NGSILDORQUERYVALUE: ","
+      GENERAL_NGSILDORQUERYKEY: ","
+      GENERAL_ENCLOSEQUERY: false
+
+  billing:
+    image: quay.io/fiware/tmforum-customer-bill-management:1.3.16
+    ports:
+      - 8640:8080
+    networks:
+      - dome
+    environment:
+      ENDPOINTS_ALL_PORT: 9090
+      MICRONAUT_SERVER_PORT: 8080
+      MICRONAUT_METRICS_ENABLED: true
+      ENDPOINTS_HEALTH_ENABLED: true
+      LOGGER_LEVELS_ROOT: INFO
+      MICRONAUT_CACHES_ENTITIES_MAXIMUM_SIZE: 1000
+      MICRONAUT_CACHES_ENTITIES_EXPIRE_AFTER_WRITE: 2s
+      MICRONAUT_CACHES_ENTITIES_EXPIRE_AFTER_ACCESS: 2s
+      MICRONAUT_HTTP_SERVICES_READ_TIMEOUT: 30s
+      MICRONAUT_HTTP_SERVICES_NGSI_PATH: ngsi-ld/v1
+      MICRONAUT_HTTP_SERVICES_NGSI_URL: http://scorpio:9090
+      GENERAL_BASEPATH: /
+      # GENERAL_CONTEXT_URL: https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld
+      GENERAL_NGSILDORQUERYVALUE: ","
+      GENERAL_NGSILDORQUERYKEY: ","
+      GENERAL_ENCLOSEQUERY: false
+      API_EXTENSION_ENABLED: true
+
+  product-catalog:
+    image: quay.io/fiware/tmforum-product-catalog:1.3.16
+    ports:
+      - 8632:8080
+    networks:
+      - dome
+    environment:
+      ENDPOINTS_ALL_PORT: 9090
+      MICRONAUT_SERVER_PORT: 8080
+      MICRONAUT_METRICS_ENABLED: true
+      ENDPOINTS_HEALTH_ENABLED: true
+      LOGGER_LEVELS_ROOT: DEBUG
+      MICRONAUT_CACHES_ENTITIES_MAXIMUM_SIZE: 1000
+      MICRONAUT_CACHES_ENTITIES_EXPIRE_AFTER_WRITE: 2s
+      MICRONAUT_CACHES_ENTITIES_EXPIRE_AFTER_ACCESS: 2s
+      MICRONAUT_HTTP_SERVICES_READ_TIMEOUT: 30s
+      MICRONAUT_HTTP_SERVICES_NGSI_PATH: ngsi-ld/v1
+      MICRONAUT_HTTP_SERVICES_NGSI_URL: http://scorpio:9090
+      GENERAL_BASEPATH: /
+      # GENERAL_CONTEXT_URL: https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld
+      GENERAL_NGSILDORQUERYVALUE: ","
+      GENERAL_NGSILDORQUERYKEY: ","
+      GENERAL_ENCLOSEQUERY: false
+
+  service-catalog:
+    image: quay.io/fiware/tmforum-service-catalog:1.3.16
+    ports:
+      - 8637:8080
+    networks:
+      - dome
+    environment:
+      ENDPOINTS_ALL_PORT: 9090
+      MICRONAUT_SERVER_PORT: 8080
+      MICRONAUT_METRICS_ENABLED: true
+      ENDPOINTS_HEALTH_ENABLED: true
+      LOGGER_LEVELS_ROOT: INFO
+      MICRONAUT_CACHES_ENTITIES_MAXIMUM_SIZE: 1000
+      MICRONAUT_CACHES_ENTITIES_EXPIRE_AFTER_WRITE: 2s
+      MICRONAUT_CACHES_ENTITIES_EXPIRE_AFTER_ACCESS: 2s
+      MICRONAUT_HTTP_SERVICES_READ_TIMEOUT: 30s
+      MICRONAUT_HTTP_SERVICES_NGSI_PATH: ngsi-ld/v1
+      MICRONAUT_HTTP_SERVICES_NGSI_URL: http://scorpio:9090
+      GENERAL_BASEPATH: /
+      # GENERAL_CONTEXT_URL: https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld
+      GENERAL_NGSILDORQUERYVALUE: ","
+      GENERAL_NGSILDORQUERYKEY: ","
+      GENERAL_ENCLOSEQUERY: false
+
+  resource-catalog:
+    image: quay.io/fiware/tmforum-resource-catalog:1.3.16
+    ports:
+      - 8636:8080
+    networks:
+      - dome
+    environment:
+      ENDPOINTS_ALL_PORT: 9090
+      MICRONAUT_SERVER_PORT: 8080
+      MICRONAUT_METRICS_ENABLED: true
+      ENDPOINTS_HEALTH_ENABLED: true
+      LOGGER_LEVELS_ROOT: INFO
+      MICRONAUT_CACHES_ENTITIES_MAXIMUM_SIZE: 1000
+      MICRONAUT_CACHES_ENTITIES_EXPIRE_AFTER_WRITE: 2s
+      MICRONAUT_CACHES_ENTITIES_EXPIRE_AFTER_ACCESS: 2s
+      MICRONAUT_HTTP_SERVICES_READ_TIMEOUT: 30s
+      MICRONAUT_HTTP_SERVICES_NGSI_PATH: ngsi-ld/v1
+      MICRONAUT_HTTP_SERVICES_NGSI_URL: http://scorpio:9090
+      GENERAL_BASEPATH: /
+      # GENERAL_CONTEXT_URL: https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld
+      GENERAL_NGSILDORQUERYVALUE: ","
+      GENERAL_NGSILDORQUERYKEY: ","
+      GENERAL_ENCLOSEQUERY: false
+
+  product-ordering:
+    image: quay.io/fiware/tmforum-product-ordering-management:1.3.16
+    ports:
+      - 8634:8080
+    networks:
+      - dome
+    environment:
+      ENDPOINTS_ALL_PORT: 9090
+      MICRONAUT_SERVER_PORT: 8080
+      MICRONAUT_METRICS_ENABLED: true
+      ENDPOINTS_HEALTH_ENABLED: true
+      LOGGER_LEVELS_ROOT: INFO
+      MICRONAUT_CACHES_ENTITIES_MAXIMUM_SIZE: 1000
+      MICRONAUT_CACHES_ENTITIES_EXPIRE_AFTER_WRITE: 2s
+      MICRONAUT_CACHES_ENTITIES_EXPIRE_AFTER_ACCESS: 2s
+      MICRONAUT_HTTP_SERVICES_READ_TIMEOUT: 30s
+      MICRONAUT_HTTP_SERVICES_NGSI_PATH: ngsi-ld/v1
+      MICRONAUT_HTTP_SERVICES_NGSI_URL: http://scorpio:9090
+      GENERAL_BASEPATH: /
+      # GENERAL_CONTEXT_URL: https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld
+      GENERAL_NGSILDORQUERYVALUE: ","
+      GENERAL_NGSILDORQUERYKEY: ","
+      GENERAL_ENCLOSEQUERY: false
+
+  product-inventory:
+    image: quay.io/fiware/tmforum-product-inventory:1.3.16
+    ports:
+      - 8635:8080
+    networks:
+      - dome
+    environment:
+      ENDPOINTS_ALL_PORT: 9090
+      MICRONAUT_SERVER_PORT: 8080
+      MICRONAUT_METRICS_ENABLED: true
+      ENDPOINTS_HEALTH_ENABLED: true
+      LOGGER_LEVELS_ROOT: INFO
+      MICRONAUT_CACHES_ENTITIES_MAXIMUM_SIZE: 1000
+      MICRONAUT_CACHES_ENTITIES_EXPIRE_AFTER_WRITE: 2s
+      MICRONAUT_CACHES_ENTITIES_EXPIRE_AFTER_ACCESS: 2s
+      MICRONAUT_HTTP_SERVICES_READ_TIMEOUT: 30s
+      MICRONAUT_HTTP_SERVICES_NGSI_PATH: ngsi-ld/v1
+      MICRONAUT_HTTP_SERVICES_NGSI_URL: http://scorpio:9090
+      GENERAL_BASEPATH: /
+      # GENERAL_CONTEXT_URL: https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld
+      GENERAL_NGSILDORQUERYVALUE: ","
+      GENERAL_NGSILDORQUERYKEY: ","
+      GENERAL_ENCLOSEQUERY: false
+
+  resource-inventory:
+    image: quay.io/fiware/tmforum-resource-inventory:1.3.16
+    ports:
+      - 8641:8080
+    networks:
+      - dome
+    environment:
+      ENDPOINTS_ALL_PORT: 9090
+      MICRONAUT_SERVER_PORT: 8080
+      MICRONAUT_METRICS_ENABLED: true
+      ENDPOINTS_HEALTH_ENABLED: true
+      LOGGER_LEVELS_ROOT: INFO
+      MICRONAUT_CACHES_ENTITIES_MAXIMUM_SIZE: 1000
+      MICRONAUT_CACHES_ENTITIES_EXPIRE_AFTER_WRITE: 2s
+      MICRONAUT_CACHES_ENTITIES_EXPIRE_AFTER_ACCESS: 2s
+      MICRONAUT_HTTP_SERVICES_READ_TIMEOUT: 30s
+      MICRONAUT_HTTP_SERVICES_NGSI_PATH: ngsi-ld/v1
+      MICRONAUT_HTTP_SERVICES_NGSI_URL: http://scorpio:9090
+      GENERAL_BASEPATH: /
+      # GENERAL_CONTEXT_URL: https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld
+      GENERAL_NGSILDORQUERYVALUE: ","
+      GENERAL_NGSILDORQUERYKEY: ","
+      GENERAL_ENCLOSEQUERY: false
+
+  usage:
+    image: quay.io/fiware/tmforum-usage-management:1.3.16
+    ports:
+      - 8638:8080
+    networks:
+      - dome
+    environment:
+      ENDPOINTS_ALL_PORT: 9090
+      MICRONAUT_SERVER_PORT: 8080
+      MICRONAUT_METRICS_ENABLED: true
+      ENDPOINTS_HEALTH_ENABLED: true
+      LOGGER_LEVELS_ROOT: INFO
+      MICRONAUT_CACHES_ENTITIES_MAXIMUM_SIZE: 1000
+      MICRONAUT_CACHES_ENTITIES_EXPIRE_AFTER_WRITE: 2s
+      MICRONAUT_CACHES_ENTITIES_EXPIRE_AFTER_ACCESS: 2s
+      MICRONAUT_HTTP_SERVICES_READ_TIMEOUT: 30s
+      MICRONAUT_HTTP_SERVICES_NGSI_PATH: ngsi-ld/v1
+      MICRONAUT_HTTP_SERVICES_NGSI_URL: http://scorpio:9090
+      GENERAL_BASEPATH: /
+      # GENERAL_CONTEXT_URL: https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld
+      GENERAL_NGSILDORQUERYVALUE: ","
+      GENERAL_NGSILDORQUERYKEY: ","
+      GENERAL_ENCLOSEQUERY: false
+
+  quote:
+    image: quay.io/fiware/tmforum-quote:1.3.16
+    ports:
+      - 8642:8080
+    networks:
+      - dome
+    environment:
+      ENDPOINTS_ALL_PORT: 9090
+      MICRONAUT_SERVER_PORT: 8080
+      MICRONAUT_METRICS_ENABLED: true
+      ENDPOINTS_HEALTH_ENABLED: true
+      LOGGER_LEVELS_ROOT: INFO
+      MICRONAUT_CACHES_ENTITIES_MAXIMUM_SIZE: 1000
+      MICRONAUT_CACHES_ENTITIES_EXPIRE_AFTER_WRITE: 2s
+      MICRONAUT_CACHES_ENTITIES_EXPIRE_AFTER_ACCESS: 2s
+      MICRONAUT_HTTP_SERVICES_READ_TIMEOUT: 30s
+      MICRONAUT_HTTP_SERVICES_NGSI_PATH: ngsi-ld/v1
+      MICRONAUT_HTTP_SERVICES_NGSI_URL: http://scorpio:9090
+      GENERAL_BASEPATH: /tmf-api/quoteManagement/v4/
+      # GENERAL_CONTEXT_URL: https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld
+      GENERAL_NGSILDORQUERYVALUE: ","
+      GENERAL_NGSILDORQUERYKEY: ","
+      GENERAL_ENCLOSEQUERY: false
+
+networks:
+  dome:
+    external: true

@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  # MongoDB para el Proxy
+  mongo:
+    image: mongo:6.0
+    container_name: bae-proxy-mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - ./volumes/mongo-data:/data/db
+    restart: unless-stopped
+
+  # Business Ecosystem Charging Backend
+  charging:
+    image: fiware/biz-ecosystem-charging-backend:10.5.0-PRE-2
+    container_name: bae-charging
+    depends_on:
+      - mongo
+    ports:
+      - "8006:8006"
+    volumes:
+      # ⬇️ mount your custom settings.py into the app
+      - ./config/settings.py:/opt/business-ecosystem-charging-backend/src/settings.py:ro
+      - ./config/services_settings.py:/opt/business-ecosystem-charging-backend/src/services_settings.py:ro
+    environment:
+      - BAE_CB_MONGO_SERVER=mongo
+    restart: unless-stopped
+
+  # Business Ecosystem Logic Proxy
+  proxy:
+    image: fiware/biz-ecosystem-logic-proxy:10.4.0-PRE-2
+    container_name: bae-proxy
+    depends_on:
+      - mongo
+      - charging
+    ports:
+      - "8004:8004"
+    volumes:
+      # ⬇️ mount your custom config.js into the app
+      - ./config/config.js:/opt/business-ecosystem-logic-proxy/config.js:ro
+    restart: unless-stopped
