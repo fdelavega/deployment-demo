@@ -33,16 +33,6 @@ contract-management:
 postgresql:
   # -- should it be enabled? set to false if one outside the chart is used.
   enabled: true
-  global:
-    security:
-      # allow the image from the legacy repo
-      allowInsecureImages: true
-  # -- configuration of the used image
-  image:
-    # -- repository where the image is held, see https://github.com/bitnami/charts/issues/35164 for further info
-    repository: bitnamilegacy/postgresql
-    # -- fixes the unpullable image referenced in the chart
-    tag: 13.18.0
   # -- allows to set a fixed name for the services
   fullnameOverride: postgresql
   generatePasswords:
@@ -76,15 +66,6 @@ keycloak:
     enabled: true
     hostname: keycloak-consumer.127.0.0.1.nip.io
   
-  global:
-    security:
-      # allow the image from the legacy repo
-      allowInsecureImages: true
-  # -- configuration of the used image
-  image:
-    # -- repository where the image is held, see https://github.com/bitnami/charts/issues/35164 for further info
-    repository: bitnamilegacy/keycloak
-    tag: 26.3.2-debian-12-r0
   # -- disable the security context, required by the current quarkus container, will be solved in the future chart versions of keycloak
   containerSecurityContext:
     enabled: false
@@ -141,7 +122,7 @@ keycloak:
       value: DEBUG
     # did of the consumer
     - name: DID
-      value: did:key:zDnaeS7Q6DxRB4sdrYx1MN8FQnqvNZHz5c3LgXnhHsx8AJDVf
+      value: did:key:zDnaetUFYX8QSyL4uBdyKAH9bzAoidv7j8ixeTeQyTA6eTvUh
 
   extraVolumeMounts:
     - name: did-material
@@ -173,7 +154,7 @@ keycloak:
       "vc.user-credential.scope": "UserCredential",
       "vc.user-credential.vct": "UserCredential"
     clientRoles: |
-      "did:key:zDnaeweD2CZEV3GArTbbfUtM3PS5LM2QXx1Ahu1KroezYN6qS": [
+      "did:key:zDnaev25SY8XFkwWKZraZHt6MqiUGTs2EmBhUCJPT5oHZHF97": [
         {
           "name": "RESEARCHER",
           "description": "Integrates new data services or APIs",
@@ -195,7 +176,7 @@ keycloak:
           }
         ],
         "clientRoles": {
-          "did:key:zDnaeweD2CZEV3GArTbbfUtM3PS5LM2QXx1Ahu1KroezYN6qS": [
+          "did:key:zDnaev25SY8XFkwWKZraZHt6MqiUGTs2EmBhUCJPT5oHZHF97": [
             "RESEARCHER"
           ],
           "account": [
@@ -275,7 +256,7 @@ keycloak:
             "protocolMapper": "oid4vc-target-role-mapper",
             "config": {
               "subjectProperty": "roles",
-              "clientId": "did:key:zDnaeweD2CZEV3GArTbbfUtM3PS5LM2QXx1Ahu1KroezYN6qS",
+              "clientId": "did:key:zDnaev25SY8XFkwWKZraZHt6MqiUGTs2EmBhUCJPT5oHZHF97",
               "supportedCredentialTypes": "UserCredential"
             }
           },
@@ -333,7 +314,7 @@ keycloak:
       }
     clients: |
       {
-        "clientId": "did:key:zDnaeweD2CZEV3GArTbbfUtM3PS5LM2QXx1Ahu1KroezYN6qS",
+        "clientId": "did:key:zDnaev25SY8XFkwWKZraZHt6MqiUGTs2EmBhUCJPT5oHZHF97",
         "enabled": true,
         "description": "Client to connect test.org",
         "surrogateAuthRequired": false,

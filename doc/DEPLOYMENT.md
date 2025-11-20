@@ -9,13 +9,13 @@
 
     # enable storage
     kubectl apply -f https://raw.githubusercontent.com/rancher/local-path-provisioner/v0.0.30/deploy/local-path-storage.yaml
+    cd ..
 ```
 
 ## Deploy Trust Anchor
 
 ```sh
   helm repo add data-space-connector https://fiware.github.io/data-space-connector/
-  helm template data-space-connector/trust-anchor --version 0.2.1 -f trust-anchor/values.yaml --name-template=trust-anchor --namespace=trust-anchor --output-dir rendered
 ```
 
 > :warning: Don´t forget to set the proper KUBECONFIG. You might deploy to an unwanted cluster elsewise.;)
@@ -28,13 +28,6 @@ Create namespace:
 Use helm install:
 ```sh
     helm install trust-anchor data-space-connector/trust-anchor --version 0.2.1 -f trust-anchor/values.yaml --namespace=trust-anchor
-    watch kubectl get pods -n trust-anchor
-```
-
-Use kubectl apply:
-```sh
-    # if helm template was executed, this can be used to apply all files in the folder
-    kubectl apply -R  -f rendered/    
     watch kubectl get pods -n trust-anchor
 ```
 
@@ -108,6 +101,8 @@ Create an identity for the provider and remember the DID(you can get the did aga
   export PROVIDER_DID=$(cat ./provider-identity/did.json | jq .id -r); echo $PROVIDER_DID
 ```
 
+Check how a did:web looks: did:web:did-consumer.seamware.io:did
+URL: https://did-consumer.seamware.io/did/did.json
 
 ## Deploy consumer:
 
@@ -132,7 +127,7 @@ Insert the Participant Identities in the values(replace the place-holders in the
 
 Use helm install:
 ```sh
-  helm install consumer-dsc data-space-connector/data-space-connector --version 8.2.20 -f consumer/values.yaml --namespace=consumer
+  helm install consumer-dsc data-space-connector/data-space-connector --version 8.2.22 -f consumer/values.yaml --namespace=consumer
   watch kubectl get pods -n consumer
 ```
 
@@ -191,7 +186,7 @@ Insert the Participant Identities in the values(replace the place-holders in the
 
 Use helm install:
 ```sh
-  helm install provider-dsc data-space-connector/data-space-connector --version 8.2.20 -f provider/values.yaml --namespace=provider
+  helm install provider-dsc data-space-connector/data-space-connector --version 8.2.22 -f provider/values.yaml --namespace=provider
   watch kubectl get pods -n provider
 ```
 

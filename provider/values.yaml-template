@@ -81,25 +81,6 @@ dataSpaceConfig:
 
 # -- apisix configuration
 apisix:
-  global:
-    security:
-      # allow the image from the legacy repo
-      allowInsecureImages: true
-  image:
-    repository: bitnamilegacy/apisix
-  ingressController:
-    image:
-      repository: bitnamilegacy/apisix-ingress-controller
-  waitContainer:
-    image:
-      repository: bitnamilegacy/os-shell
-  etcd:
-    global:
-      security:
-        # allow the image from the legacy repo
-        allowInsecureImages: true
-    image:
-      repository: bitnamilegacy/etcd
   dataPlane:
     # -- configure the ingress to the data service
     ingress:
@@ -161,12 +142,6 @@ opa:
 
 # database used for odrl-pap
 postgresql:
-  global:
-    security:
-      # allow the image from the legacy repo
-      allowInsecureImages: true
-  image:
-    repository: bitnamilegacy/postgresql
   generatePasswords:
     # -- should a password for the database be generated in the cluster
     enabled: true
@@ -224,12 +199,6 @@ odrl-pap:
 
 # database used for scorpio
 postgis:
-  global:
-    security:
-      # allow the image from the legacy repo
-      allowInsecureImages: true
-  image:
-    repository: bitnamilegacy/postgresql
   primary:
     persistence:
       enabled: true      

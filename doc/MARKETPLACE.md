@@ -1,6 +1,13 @@
 # Marketplace
 
 In this case we are going to reuse the trust-anchor and identities from the DEPLOYMENT
+Follow the steps of DEPLOYMENT for running the trust anchor.
+
+Create namespaces:
+```sh
+    kubectl create namespace consumer
+    kubectl create namespace provider
+```
 
 Deploy customer connector
 ```shell
@@ -12,9 +19,26 @@ Deploy customer connector
       consumer-market/values.yaml-template > consumer-market/values.yaml
 ```
 
+Deploy the consumer-key to the cluster
+
+```shell
+  kubectl create secret generic consumer-identity --from-file=consumer-identity/cert.pfx -n consumer
+```
+
 ```sh
-  helm install consumer-dsc data-space-connector/data-space-connector --version 8.2.20 -f consumer-market/values.yaml --namespace=consumer
+  helm install consumer-dsc data-space-connector/data-space-connector --version 8.2.22 -f consumer-market/values.yaml --namespace=consumer
   watch kubectl get pods -n consumer
+```
+
+Register the consumer at the trust-anchor:
+
+```shell
+  curl -X POST http://til.127.0.0.1.nip.io:8080/issuer \
+    --header 'Content-Type: application/json' \
+    --data "{
+      \"did\": \"$CONSUMER_DID\",
+      \"credentials\": []
+    }"
 ```
 
 
@@ -29,10 +53,28 @@ Install provider with basic marketplace features enabled: tmforum API, and contr
       provider-market/values.yaml-template > provider-market/values.yaml
 ```
 
+Deploy the key to the cluster
+
+```shell
+  kubectl create secret generic provider-identity --from-file=provider-identity/cert.pfx -n provider
+```
+
 ```sh
-  helm install provider-dsc data-space-connector/data-space-connector --version 8.2.20 -f provider-market/values.yaml --namespace=provider
+  helm install provider-dsc data-space-connector/data-space-connector --version 8.2.22 -f provider-market/values.yaml --namespace=provider
   watch kubectl get pods -n provider
 ```
+
+Register the provider at the trust-anchor:
+
+```shell
+curl -X POST http://til.127.0.0.1.nip.io:8080/issuer \
+  --header 'Content-Type: application/json' \
+  --data "{
+    \"did\": \"$PROVIDER_DID\",
+    \"credentials\": []
+  }"
+```
+
 
 Populate trusted issuers list
 ```sh
@@ -41,9 +83,6 @@ curl -X POST http://til-provider.127.0.0.1.nip.io:8080/issuer \
   --data "{
       \"did\": \"$CONSUMER_DID\",
       \"credentials\": [
-          {
-              \"credentialsType\": \"OperatorCredential\"
-          },
           {
               \"credentialsType\": \"UserCredential\"
           }
@@ -454,6 +493,10 @@ curl -X 'PATCH' \
 Check the new policy has been created
 ```sh
   curl -s -X 'GET' http://pap-provider.127.0.0.1.nip.io:8080/policy | python3 -m json.tool
+```
+
+```shell
+curl -X GET http://til-provider.127.0.0.1.nip.io:8080/issuer/${CONSUMER_DID} | python3 -m json.tool
 ```
 
 

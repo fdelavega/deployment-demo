@@ -33,16 +33,6 @@ contract-management:
 postgresql:
   # -- should it be enabled? set to false if one outside the chart is used.
   enabled: true
-  global:
-    security:
-      # allow the image from the legacy repo
-      allowInsecureImages: true
-  # -- configuration of the used image
-  image:
-    # -- repository where the image is held, see https://github.com/bitnami/charts/issues/35164 for further info
-    repository: bitnamilegacy/postgresql
-    # -- fixes the unpullable image referenced in the chart
-    tag: 13.18.0
   # -- allows to set a fixed name for the services
   fullnameOverride: postgresql
   generatePasswords:
@@ -76,15 +66,6 @@ keycloak:
     enabled: true
     hostname: keycloak-consumer.127.0.0.1.nip.io
   
-  global:
-    security:
-      # allow the image from the legacy repo
-      allowInsecureImages: true
-  # -- configuration of the used image
-  image:
-    # -- repository where the image is held, see https://github.com/bitnami/charts/issues/35164 for further info
-    repository: bitnamilegacy/keycloak
-    tag: 26.3.2-debian-12-r0
   # -- disable the security context, required by the current quarkus container, will be solved in the future chart versions of keycloak
   containerSecurityContext:
     enabled: false

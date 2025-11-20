@@ -12,7 +12,7 @@ vcverifier:
     verifier:
       # address of the trust anchor
       tirAddress: http://tir.127.0.0.1.nip.io:8080/
-      did: did:key:zDnaeweD2CZEV3GArTbbfUtM3PS5LM2QXx1Ahu1KroezYN6qS
+      did: did:key:zDnaev25SY8XFkwWKZraZHt6MqiUGTs2EmBhUCJPT5oHZHF97
       supportedModes: ["urlEncoded"]
     # public address of the verifier, to be provided as oid-config
     server:
@@ -81,25 +81,6 @@ dataSpaceConfig:
 
 # -- apisix configuration
 apisix:
-  global:
-    security:
-      # allow the image from the legacy repo
-      allowInsecureImages: true
-  image:
-    repository: bitnamilegacy/apisix
-  ingressController:
-    image:
-      repository: bitnamilegacy/apisix-ingress-controller
-  waitContainer:
-    image:
-      repository: bitnamilegacy/os-shell
-  etcd:
-    global:
-      security:
-        # allow the image from the legacy repo
-        allowInsecureImages: true
-    image:
-      repository: bitnamilegacy/etcd
   dataPlane:
     # -- configure the ingress to the data service
     ingress:
@@ -161,12 +142,6 @@ opa:
 
 # database used for odrl-pap
 postgresql:
-  global:
-    security:
-      # allow the image from the legacy repo
-      allowInsecureImages: true
-  image:
-    repository: bitnamilegacy/postgresql
   generatePasswords:
     # -- should a password for the database be generated in the cluster
     enabled: true
@@ -195,7 +170,7 @@ odrl-pap:
   additonalEnvVars:
     # needs to know the providers identity to 
     - name: GENERAL_ORGANIZATION_DID
-      value: did:key:zDnaeweD2CZEV3GArTbbfUtM3PS5LM2QXx1Ahu1KroezYN6qS
+      value: did:key:zDnaev25SY8XFkwWKZraZHt6MqiUGTs2EmBhUCJPT5oHZHF97
   database:
     # -- url to connect the db at
     url: jdbc:postgresql://postgresql:5432/pap
@@ -213,7 +188,7 @@ odrl-pap:
       - -ec
       - |
         #!/bin/sh
-        export GENERAL_ORGANIZATION_DID=did:key:zDnaeweD2CZEV3GArTbbfUtM3PS5LM2QXx1Ahu1KroezYN6qS
+        export GENERAL_ORGANIZATION_DID=did:key:zDnaev25SY8XFkwWKZraZHt6MqiUGTs2EmBhUCJPT5oHZHF97
         ./application -Dquarkus.http.host=0.0.0.0
   ingress:
     enabled: true
@@ -224,12 +199,6 @@ odrl-pap:
 
 # database used for scorpio
 postgis:
-  global:
-    security:
-      # allow the image from the legacy repo
-      allowInsecureImages: true
-  image:
-    repository: bitnamilegacy/postgresql
   primary:
     persistence:
       enabled: true      
@@ -317,7 +286,7 @@ keycloak:
       value: DEBUG
     # did of the provider
     - name: DID
-      value: did:key:zDnaeweD2CZEV3GArTbbfUtM3PS5LM2QXx1Ahu1KroezYN6qS
+      value: did:key:zDnaev25SY8XFkwWKZraZHt6MqiUGTs2EmBhUCJPT5oHZHF97
 
   extraVolumeMounts:
     - name: did-material
@@ -349,7 +318,7 @@ keycloak:
       "vc.user-credential.scope": "UserCredential",
       "vc.user-credential.vct": "UserCredential"
     clientRoles: |
-      "did:key:zDnaeweD2CZEV3GArTbbfUtM3PS5LM2QXx1Ahu1KroezYN6qS": [
+      "did:key:zDnaev25SY8XFkwWKZraZHt6MqiUGTs2EmBhUCJPT5oHZHF97": [
         {
           "name": "RESEARCHER",
           "description": "Integrates new data services or APIs",
@@ -376,7 +345,7 @@ keycloak:
           }
         ],
         "clientRoles": {
-          "did:key:zDnaeweD2CZEV3GArTbbfUtM3PS5LM2QXx1Ahu1KroezYN6qS": [
+          "did:key:zDnaev25SY8XFkwWKZraZHt6MqiUGTs2EmBhUCJPT5oHZHF97": [
             "RESEARCHER",
             "VIEWER"
           ],
@@ -457,7 +426,7 @@ keycloak:
             "protocolMapper": "oid4vc-target-role-mapper",
             "config": {
               "subjectProperty": "roles",
-              "clientId": "did:key:zDnaeweD2CZEV3GArTbbfUtM3PS5LM2QXx1Ahu1KroezYN6qS",
+              "clientId": "did:key:zDnaev25SY8XFkwWKZraZHt6MqiUGTs2EmBhUCJPT5oHZHF97",
               "supportedCredentialTypes": "UserCredential"
             }
           },
@@ -515,7 +484,7 @@ keycloak:
       }
     clients: |
       {
-        "clientId": "did:key:zDnaeweD2CZEV3GArTbbfUtM3PS5LM2QXx1Ahu1KroezYN6qS",
+        "clientId": "did:key:zDnaev25SY8XFkwWKZraZHt6MqiUGTs2EmBhUCJPT5oHZHF97",
         "enabled": true,
         "description": "Client to connect test.org",
         "surrogateAuthRequired": false,

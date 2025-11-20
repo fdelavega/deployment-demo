@@ -284,6 +284,6 @@ curl -X POST http://mp-data-service.127.0.0.1.nip.io:8080/ngsi-ld/v1/entities?ty
       "NO2": {
         "type": "Property",
         "value": "45"
-      },
+      }
     }'
 ```
