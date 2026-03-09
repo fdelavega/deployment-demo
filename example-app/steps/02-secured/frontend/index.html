@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Step 02 - Secured Access</title>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+      crossorigin=""
+    />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="layout">
+      <section class="panel">
+        <h1>Step 02: DSC Secured Access</h1>
+        <p class="subtitle">Backend sends bearer token to mp-data-service.</p>
+        <div class="controls">
+          <label for="typeInput">Entity type</label>
+          <input id="typeInput" type="text" value="AirQualityObserved" />
+          <div class="button-row">
+            <button id="loadBtn" type="button">Load Data</button>
+          </div>
+        </div>
+        <div id="status" class="status">Loading app...</div>
+      </section>
+      <section class="map-wrap"><div id="map"></div></section>
+    </main>
+    <script
+      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+      integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+      crossorigin=""
+    ></script>
+    <script src="/script.js"></script>
+  </body>
+</html>
